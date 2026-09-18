@@ -43,9 +43,11 @@ let client = null, history = [], lastSnapSent = null, busy = false, stream = nul
 function getClient() {
   const key = store.get("vega.key");
   if (!key) return null;
-  if (!client || client._k !== key) {
-    client = new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true });
-    client._k = key;
+  const ws = store.get("vega.ws", "");
+  if (!client || client._k !== key + ws) {
+    // Les clés non rattachées à un workspace exigent l'en-tête anthropic-workspace-id
+    client = new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true, defaultHeaders: ws ? { "anthropic-workspace-id": ws } : {} });
+    client._k = key + ws;
   }
   return client;
 }
@@ -53,6 +55,7 @@ function getClient() {
 const PROFILE_FIELDS = ["vDca", "vFreq", "vPocket", "vUsed", "vHold", "vPru", "vHorizon", "vRisk", "vNotes"];
 function loadSettings() {
   $("vKey").value = store.get("vega.key", "");
+  $("vWs").value = store.get("vega.ws", "");
   let p = {}; try { p = JSON.parse(store.get("vega.profile", "{}")); } catch {}
   for (const f of PROFILE_FIELDS) if (p[f] != null) $(f).value = p[f];
 }
@@ -165,6 +168,7 @@ $("vGear").addEventListener("click", () => showSettings($("vset").hidden));
 $("vNew").addEventListener("click", () => { if (stream) stream.abort(); history = []; lastSnapSent = null; showSettings(false); welcome(); });
 $("vSave").addEventListener("click", () => {
   store.set("vega.key", $("vKey").value.trim());
+  store.set("vega.ws", $("vWs").value.trim());
   const p = {}; for (const f of PROFILE_FIELDS) p[f] = $(f).value;
   store.set("vega.profile", JSON.stringify(p));
   showSettings(false); if (!history.length) welcome();
@@ -255,7 +259,9 @@ async function send(question) {
     out.md.innerHTML = md(text || "_Pas de réponse._");
     if (cost) { out.cost.hidden = false; out.cost.textContent = `≈ ${cost.toFixed(3).replace(".", ",")} $ pour cette réponse`; }
   } catch (err) {
-    const m = err && err.status === 401 ? "Clé API refusée : vérifie-la dans **Réglages**."
+    const wsMissing = err && err.status === 400 && /workspace/i.test(err.message || "");
+    const m = wsMissing ? "Ta clé API n'est rattachée à aucun workspace. Ouvre **Réglages** et renseigne l'**ID du workspace** (console.anthropic.com → Settings → Workspaces, il commence par `wrkspc_`), ou crée une clé directement dans un workspace."
+      : err && err.status === 401 ? "Clé API refusée : vérifie-la dans **Réglages**."
       : err && err.status === 429 ? "Trop de requêtes ou limite de dépense atteinte. Réessaie dans une minute."
       : err && err.name === "APIUserAbortError" ? "_Réponse interrompue._"
       : `Erreur : ${err && err.message ? err.message : err}`;
