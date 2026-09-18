@@ -17,6 +17,7 @@
   --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{background:var(--bg);color:var(--text);margin:0}
 body{font-family:var(--sans);font-size:14px;line-height:1.45;padding:0 16px 48px}
 .wrap{max-width:1320px;margin:0 auto}
@@ -113,6 +114,53 @@ footer b{color:var(--muted)}
 .fng-cls{font-size:15px;font-weight:600;margin-top:6px}
 .fng-hist{display:flex;justify-content:center;gap:18px;margin-top:14px;font-size:12px;color:var(--muted)}
 .fng-hist b{display:block;font-family:var(--mono);font-size:15px;color:var(--text)}
+
+/* ---------- Vega : assistant IA ---------- */
+.ask{margin-left:auto;font-size:12px;padding:4px 10px;border-radius:999px;background:transparent;color:var(--muted);border:1px solid var(--line2);display:inline-flex;align-items:center;gap:6px}
+.ask:hover{color:var(--amber);border-color:var(--amber)}
+.ask .av{width:16px;height:16px}
+.vfab{position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:30;display:flex;align-items:center;gap:10px;padding:8px 16px 8px 8px;border-radius:999px;background:var(--panel2);border:1px solid var(--amber);color:var(--text);font-weight:600;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+.vfab .av{width:40px;height:40px}
+.vfab small{display:block;font-weight:400;font-size:11px;color:var(--muted)}
+.av{flex:none;border-radius:50%;display:block}
+.vpanel{position:fixed;top:0;right:0;bottom:0;width:min(460px,100vw);z-index:40;background:var(--panel);border-left:1px solid var(--line2);display:flex;flex-direction:column;box-shadow:-20px 0 60px rgba(0,0,0,.5);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.vhead{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.vhead .av{width:44px;height:44px}
+.vhead .who{flex:1;min-width:0}
+.vhead .who b{display:block;font-size:15px}
+.vhead .who span{font-size:12px;color:var(--muted)}
+.vhead button{padding:6px 8px;font-size:12px}
+.vbody{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+.msg{max-width:100%;font-size:14px;line-height:1.55}
+.msg.user{align-self:flex-end;background:var(--amber-bg);border:1px solid rgba(245,184,61,.3);padding:9px 13px;border-radius:12px 12px 2px 12px;max-width:85%;white-space:pre-wrap}
+.msg.bot{display:grid;grid-template-columns:28px 1fr;gap:10px}
+.msg.bot .av{width:28px;height:28px}
+.msg.bot .md{min-width:0;overflow-wrap:anywhere}
+.md p{margin:0 0 8px} .md ul,.md ol{margin:0 0 8px;padding-left:20px} .md li{margin:2px 0}
+.md h1,.md h2,.md h3,.md h4{font-size:14px;letter-spacing:0;text-transform:none;margin:12px 0 6px;color:var(--amber)}
+.md strong{color:var(--text)} .md code{font-family:var(--mono);font-size:12px;background:var(--panel2);padding:1px 4px;border-radius:3px}
+.md table{font-size:12px;margin:6px 0 10px;display:block;overflow-x:auto} .md td,.md th{padding:5px 8px;font-family:var(--sans);white-space:normal}
+.md a{color:var(--buy)}
+.vstatus{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.vcost{font-size:11px;color:var(--faint);margin-top:4px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 16px 10px}
+.chips button{font-size:12px;padding:5px 10px;border-radius:999px;background:transparent;color:var(--muted)}
+.chips button:hover{color:var(--amber)}
+.vfoot{border-top:1px solid var(--line);padding:12px 16px;display:flex;gap:8px;align-items:flex-end}
+.vfoot textarea{flex:1;resize:none;font:inherit;font-size:14px;color:var(--text);background:var(--panel2);border:1px solid var(--line2);border-radius:8px;padding:9px 11px;min-height:42px;max-height:140px}
+.vfoot textarea:focus-visible{outline:2px solid var(--amber);outline-offset:0}
+.vfoot button{height:42px;padding:0 14px;background:var(--amber);color:#1a1405;border-color:var(--amber);font-weight:700}
+.vfoot button.stop{background:var(--panel2);color:var(--text);border-color:var(--line2)}
+.vset{padding:16px;overflow-y:auto;flex:1;display:grid;gap:14px;align-content:start}
+.vset label{display:grid;gap:5px;font-size:12px;color:var(--muted)}
+.vset input,.vset select,.vset textarea{font:inherit;font-size:14px;color:var(--text);background:var(--panel2);border:1px solid var(--line2);border-radius:6px;padding:8px 10px;width:100%}
+.vset .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.vset h3{font-size:12px;letter-spacing:.1em;text-transform:uppercase;margin:6px 0 0;color:var(--text)}
+.vset .save{background:var(--amber);color:#1a1405;border-color:var(--amber);font-weight:700;padding:10px}
+.vset p{margin:0;font-size:12px;color:var(--faint)}
+.vset a{color:var(--buy)}
+.welcome{color:var(--muted);font-size:13px}
+.welcome b{color:var(--text)}
 </style>
 </head>
 <body>
@@ -574,6 +622,31 @@ function render(){
   if(norm>0.45) im.push(`<b>Pression acheteuse marquée</b> : dynamique favorable, mais vérifier que le funding et le Fear & Greed ne sont pas en excès avant d'augmenter l'exposition.`);
   if(norm<-0.45) im.push(`<b>Pression vendeuse marquée</b> : prudence sur les nouveaux achats ; attendre un signal de stabilisation (flux qui se retournent, skew qui se normalise).`);
   $('implic').innerHTML=im.map(t=>`<li>${t}</li>`).join('');
+
+  // ---------- snapshot pour l'assistant IA ----------
+  const r0=v=>v==null||!isFinite(v)?null:Math.round(v);
+  const r1=v=>v==null||!isFinite(v)?null:Math.round(v*10)/10;
+  const strip=h=>h.replace(/<[^>]+>/g,'');
+  const fngHist=(d.fng&&d.fng.data||[]).slice(0,30).map(r=>+r.value);
+  st.snap={
+    horodatage:new Date().toISOString(), cours_btc:r0(S), variation_24h_pct:d.tick?r1(+d.tick.priceChangePercent):null,
+    perimetre_echeances:scopeTxt,
+    pression:{verdict:vd[0],score:score,nb_signaux:sig.length,score_normalise:r1(norm*100)/100,signaux:sig.map(x=>({points:x.pts,detail:strip(x.txt)}))},
+    gamma:{gex_total_usd_par_1pct:r0(gx.tot),regime:posG?'positif (amortissement)':'negatif (amplification)',
+      call_wall:gx.callWall&&gx.callWall.K,put_wall:gx.putWall&&gx.putWall.K,gamma_flip:r0(prof.flip),
+      max_pain_selection:mp,max_pain_prochaine_echeance:{date:new Date(nextExp).toISOString().slice(0,10),strike:mpNext},
+      top_strikes_gex:gx.band.slice().sort((a,b)=>Math.abs(b.net)-Math.abs(a.net)).slice(0,8).map(r=>({strike:r.K,gex_net:r0(r.net)}))},
+    scenarios_couverture_teneurs:scen.map(x=>({variation_pct:x.m,prix:r0(x.px),flux_usd:r0(x.flow)})),
+    flux_options_24h:{tout:{trades:fA.n,notionnel:r0(fA.notional),net_calls:r0(fA.netC),net_puts:r0(fA.netP),put_call_volume:fA.cVol?r1(fA.pVol/fA.cVol*100)/100:null},
+      blocs:{trades:fB.n,notionnel:r0(fB.notional),net_calls:r0(fB.netC),net_puts:r0(fB.netP)}},
+    volatilite:{dvol:r1(dvNow),dvol_var_24h:dvNow&&dv24?r1(dvNow-dv24):null,vol_realisee:r1(hv),
+      mouvement_attendu_7j_pct:em7?r1(em7/S*100):null,
+      structure_par_echeance:surf.filter(x=>x.days<=200).map(x=>({echeance:new Date(x.exp).toISOString().slice(0,10),jours:r1(x.days),iv_atm:r1(x.atmIv),rr25:r1(x.rr),oi_btc:r0(x.oi)}))},
+    futures:{funding_annualise_pct:r1(fundAnn),open_interest_usd:r0(oiNow),oi_var_24h_pct:r1(oiChg),ratio_taker_24h:tkRatio?Math.round(tkRatio*100)/100:null,ratio_comptes_long_short:ls?+ls.longShortRatio:null},
+    fear_greed:{valeur:fng?+fng.value:null,classe:fng?trFng(fng.value_classification):null,historique_30j_du_plus_recent:fngHist},
+    lecture_automatique:im.map(strip)
+  };
+  document.dispatchEvent(new CustomEvent('radar:snap'));
 }
 
 const fngColor=v=>v<25?'#E5484D':v<45?'#E8804A':v<55?'#F5B83D':v<75?'#8FC45A':'#3DD68C';
@@ -623,5 +696,75 @@ document.addEventListener('visibilitychange',()=>{ if(!document.hidden) safeLoad
 setInterval(()=>{ if(!document.hidden){lastLoad=Date.now();load();} },120000);
 safeLoad();
 </script>
+
+<!-- Vega : assistant IA -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="vegaAv" viewBox="0 0 64 64">
+    <defs><linearGradient id="vg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F5B83D"/><stop offset="1" stop-color="#4C8DFF"/></linearGradient></defs>
+    <circle cx="32" cy="32" r="32" fill="#151927"/>
+    <circle cx="32" cy="32" r="29" fill="none" stroke="url(#vg)" stroke-width="3"/>
+    <path d="M14 42 Q24 42 28 30 T42 18 T52 22" fill="none" stroke="#2A3044" stroke-width="2"/>
+    <text x="32" y="43" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="32" font-weight="700" fill="url(#vg)">ν</text>
+  </symbol></defs></svg>
+
+<button class="vfab" id="vfab" type="button" aria-label="Ouvrir Vega, l'assistant IA">
+  <svg class="av" aria-hidden="true"><use href="#vegaAv"/></svg>
+  <span>Vega<small>Ton analyste BTC · IA</small></span>
+</button>
+
+<aside class="vpanel" id="vpanel" hidden aria-label="Vega, assistant IA">
+  <div class="vhead">
+    <svg class="av" aria-hidden="true"><use href="#vegaAv"/></svg>
+    <div class="who"><b>Vega</b><span id="vsub">Analyste options & DCA · lit ton dashboard en direct</span></div>
+    <button type="button" id="vNew" title="Nouvelle conversation">Nouveau</button>
+    <button type="button" id="vGear" title="Réglages">Réglages</button>
+    <button type="button" id="vClose" aria-label="Fermer">✕</button>
+  </div>
+
+  <div class="vset" id="vset" hidden>
+    <h3>Connexion à Claude</h3>
+    <label for="vKey">Clé API Anthropic
+      <input id="vKey" type="password" autocomplete="off" placeholder="sk-ant-...">
+    </label>
+    <p>La clé reste uniquement dans ce navigateur (stockage local), elle n'est jamais envoyée ailleurs qu'à api.anthropic.com. À saisir une fois par appareil. Crée-la sur <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a> et fixe une limite de dépense mensuelle.</p>
+    <h3>Ton plan DCA</h3>
+    <div class="row2">
+      <label for="vDca">DCA régulier (€)<input id="vDca" type="number" min="0" step="10" placeholder="200"></label>
+      <label for="vFreq">Fréquence<select id="vFreq"><option value="hebdomadaire">Hebdomadaire</option><option value="bimensuel">Toutes les 2 semaines</option><option value="mensuel" selected>Mensuel</option></select></label>
+    </div>
+    <div class="row2">
+      <label for="vPocket">Poche opportunité totale (€)<input id="vPocket" type="number" min="0" step="50" placeholder="2000"></label>
+      <label for="vUsed">Déjà déployé de la poche (€)<input id="vUsed" type="number" min="0" step="50" placeholder="0"></label>
+    </div>
+    <div class="row2">
+      <label for="vHold">BTC déjà détenus<input id="vHold" type="number" min="0" step="0.001" placeholder="0.05"></label>
+      <label for="vPru">Prix de revient moyen ($)<input id="vPru" type="number" min="0" step="100" placeholder="65000"></label>
+    </div>
+    <div class="row2">
+      <label for="vHorizon">Horizon<select id="vHorizon"><option>moins de 1 an</option><option>1 à 3 ans</option><option selected>3 à 5 ans</option><option>plus de 5 ans</option></select></label>
+      <label for="vRisk">Tolérance au risque<select id="vRisk"><option>prudente</option><option selected>équilibrée</option><option>dynamique</option></select></label>
+    </div>
+    <label for="vNotes">Précisions (plateforme, règles perso, ce que tu veux éviter…)
+      <textarea id="vNotes" rows="3" placeholder="Ex. j'achète sur Bitpanda, pas de levier, je veux garder 30 % de la poche pour un krach"></textarea>
+    </label>
+    <button type="button" class="save" id="vSave">Enregistrer</button>
+  </div>
+
+  <div class="vbody" id="vbody" aria-live="polite"></div>
+  <div class="chips" id="vchips">
+    <button type="button" data-q="Fais-moi le brief du jour : que disent les données, et que dois-je faire avec mon DCA et ma poche opportunité ?">Brief du jour</button>
+    <button type="button" data-q="Est-ce que c'est le moment d'utiliser une partie de ma poche opportunité ? Si oui combien et à quels niveaux, sinon qu'est-ce qui doit se passer pour que ça le devienne ?">Poche opportunité : j'agis ?</button>
+    <button type="button" data-q="Quels sont les risques principaux cette semaine ? Cherche les événements macro et crypto à venir (Fed, CPI, échéances d'options, ETF, régulation) et dis-moi ce que le marché attend.">Risques & agenda</button>
+    <button type="button" data-q="Explique-moi simplement comment lire ce dashboard, panneau par panneau, avec les valeurs actuelles.">Explique le dashboard</button>
+  </div>
+  <form class="vfoot" id="vform">
+    <textarea id="vinput" rows="1" placeholder="Pose ta question à Vega…" aria-label="Message pour Vega"></textarea>
+    <button type="submit" id="vsend">Envoyer</button>
+  </form>
+</aside>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+<script type="module" src="vega.js"></script>
 </body>
 </html>
