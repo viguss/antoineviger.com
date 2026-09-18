@@ -116,16 +116,38 @@ footer b{color:var(--muted)}
 .fng-hist b{display:block;font-family:var(--mono);font-size:15px;color:var(--text)}
 
 /* ---------- Vega : assistant IA ---------- */
+/* mascotte robot */
+.vbot svg{width:100%;height:100%;display:block;overflow:visible}
+.vbot .rb-all{transform-box:fill-box;transform-origin:50% 100%;animation:rb-bob 3.2s ease-in-out infinite}
+.vbot .rb-eyes{transition:transform .25s ease-out}
+.vbot .rb-eye{transform-box:fill-box;transform-origin:50% 50%;animation:rb-blink 4.6s infinite}
+.vbot .rb-tip{animation:rb-glow 2.4s ease-in-out infinite}
+.vbot .rb-mouth{transform-box:fill-box;transform-origin:50% 50%}
+.vbot.thinking .rb-eyes{animation:rb-scan 1.1s ease-in-out infinite}
+.vbot.thinking .rb-tip{animation-duration:.6s}
+.vbot.searching .rb-eyes{animation:rb-scan .7s linear infinite}
+.vbot.searching .rb-tip{animation-duration:.35s}
+.vbot.talking .rb-mouth{animation:rb-talk .28s ease-in-out infinite alternate}
+.vbot.talking .rb-all{animation-duration:1.4s}
+.vfab:hover .vbot .rb-all{animation:rb-wave .6s ease-in-out 2}
+@keyframes rb-bob{50%{transform:translateY(-3%)}}
+@keyframes rb-blink{0%,93%,100%{transform:scaleY(1)}96%{transform:scaleY(.12)}}
+@keyframes rb-glow{50%{opacity:.35}}
+@keyframes rb-scan{0%,100%{transform:translateX(-4px)}50%{transform:translateX(4px)}}
+@keyframes rb-talk{from{transform:scaleY(.4)}to{transform:scaleY(1.5)}}
+@keyframes rb-wave{25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+@media (prefers-reduced-motion:reduce){.vbot *{animation:none!important}}
+
 .ask{margin-left:auto;font-size:12px;padding:4px 10px;border-radius:999px;background:transparent;color:var(--muted);border:1px solid var(--line2);display:inline-flex;align-items:center;gap:6px}
 .ask:hover{color:var(--amber);border-color:var(--amber)}
-.ask .av{width:16px;height:16px}
-.vfab{position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:30;display:flex;align-items:center;gap:10px;padding:8px 16px 8px 8px;border-radius:999px;background:var(--panel2);border:1px solid var(--amber);color:var(--text);font-weight:600;box-shadow:0 8px 30px rgba(0,0,0,.5)}
-.vfab .av{width:40px;height:40px}
+.ask .av{width:18px;height:18px}
+.vfab{position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:30;display:flex;align-items:center;gap:10px;padding:6px 16px 6px 10px;border-radius:999px;background:var(--panel2);border:1px solid var(--amber);color:var(--text);font-weight:600;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+.vfab .av{width:52px;height:52px;margin:-14px 0 -6px -4px}
 .vfab small{display:block;font-weight:400;font-size:11px;color:var(--muted)}
-.av{flex:none;border-radius:50%;display:block}
+.av{flex:none;display:block}
 .vpanel{position:fixed;top:0;right:0;bottom:0;width:min(460px,100vw);z-index:40;background:var(--panel);border-left:1px solid var(--line2);display:flex;flex-direction:column;box-shadow:-20px 0 60px rgba(0,0,0,.5);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 .vhead{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line)}
-.vhead .av{width:44px;height:44px}
+.vhead .av{width:52px;height:52px}
 .vhead .who{flex:1;min-width:0}
 .vhead .who b{display:block;font-size:15px}
 .vhead .who span{font-size:12px;color:var(--muted)}
@@ -159,6 +181,11 @@ footer b{color:var(--muted)}
 .vset .save{background:var(--amber);color:#1a1405;border-color:var(--amber);font-weight:700;padding:10px}
 .vset p{margin:0;font-size:12px;color:var(--faint)}
 .vset a{color:var(--buy)}
+.vhero{margin:auto 0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:12px 8px}
+.vhero-bot{width:132px;height:132px;margin-bottom:6px;filter:drop-shadow(0 10px 24px rgba(76,141,255,.25))}
+.vhero b{font-size:17px}
+.vhero p{margin:0;color:var(--muted);font-size:13px;max-width:36ch}
+.vhero p b{font-size:inherit;color:var(--text)}
 .welcome{color:var(--muted);font-size:13px}
 .welcome b{color:var(--text)}
 </style>
@@ -698,23 +725,15 @@ safeLoad();
 </script>
 
 <!-- Vega : assistant IA -->
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
-  <symbol id="vegaAv" viewBox="0 0 64 64">
-    <defs><linearGradient id="vg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F5B83D"/><stop offset="1" stop-color="#4C8DFF"/></linearGradient></defs>
-    <circle cx="32" cy="32" r="32" fill="#151927"/>
-    <circle cx="32" cy="32" r="29" fill="none" stroke="url(#vg)" stroke-width="3"/>
-    <path d="M14 42 Q24 42 28 30 T42 18 T52 22" fill="none" stroke="#2A3044" stroke-width="2"/>
-    <text x="32" y="43" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="32" font-weight="700" fill="url(#vg)">ν</text>
-  </symbol></defs></svg>
 
 <button class="vfab" id="vfab" type="button" aria-label="Ouvrir Vega, l'assistant IA">
-  <svg class="av" aria-hidden="true"><use href="#vegaAv"/></svg>
+  <span class="av vbot" data-bot="fab"></span>
   <span>Vega<small>Ton analyste BTC · IA</small></span>
 </button>
 
 <aside class="vpanel" id="vpanel" hidden aria-label="Vega, assistant IA">
   <div class="vhead">
-    <svg class="av" aria-hidden="true"><use href="#vegaAv"/></svg>
+    <span class="av vbot" data-bot="head" id="vheadBot"></span>
     <div class="who"><b>Vega</b><span id="vsub">Analyste options & DCA · lit ton dashboard en direct</span></div>
     <button type="button" id="vNew" title="Nouvelle conversation">Nouveau</button>
     <button type="button" id="vGear" title="Réglages">Réglages</button>

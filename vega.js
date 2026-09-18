@@ -72,10 +72,60 @@ function profileText() {
 
 // ---------- UI ----------
 const body = $("vbody");
-const av = (cls = "av") => `<svg class="${cls}" aria-hidden="true"><use href="#vegaAv"/></svg>`;
+// Mascotte robot (SVG inline, ids uniques par instance)
+let botN = 0;
+function robot() {
+  const i = ++botN;
+  return `<svg viewBox="0 0 100 100" aria-hidden="true"><defs>
+    <linearGradient id="rbH${i}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3B4670"/><stop offset="1" stop-color="#1B2138"/></linearGradient>
+    <radialGradient id="rbE${i}"><stop offset="0" stop-color="#E8FBFF"/><stop offset=".55" stop-color="#7FD8FF"/><stop offset="1" stop-color="#3C9BFF"/></radialGradient>
+    <filter id="rbG${i}" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2"/></filter></defs>
+  <g class="rb-all">
+    <line x1="50" y1="20" x2="50" y2="9" stroke="#5A6690" stroke-width="3" stroke-linecap="round"/>
+    <circle class="rb-tip" cx="50" cy="8" r="6" fill="#F5B83D" filter="url(#rbG${i})"/>
+    <circle cx="50" cy="8" r="4" fill="#FFD27A"/>
+    <rect x="7" y="39" width="10" height="20" rx="5" fill="#4C8DFF"/>
+    <rect x="83" y="39" width="10" height="20" rx="5" fill="#4C8DFF"/>
+    <rect x="13" y="19" width="74" height="60" rx="24" fill="url(#rbH${i})" stroke="#56628C" stroke-width="2"/>
+    <path d="M26 28 Q50 20 74 28" fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="3" stroke-linecap="round"/>
+    <rect x="22" y="33" width="56" height="34" rx="15" fill="#070A12"/>
+    <g class="rb-eyes">
+      <rect class="rb-eye" x="33" y="40" width="11" height="15" rx="5.5" fill="url(#rbE${i})"/>
+      <rect class="rb-eye" x="56" y="40" width="11" height="15" rx="5.5" fill="url(#rbE${i})"/>
+      <circle cx="41" cy="44" r="1.8" fill="#fff"/><circle cx="64" cy="44" r="1.8" fill="#fff"/>
+    </g>
+    <rect class="rb-mouth" x="45" y="59" width="10" height="3" rx="1.5" fill="#7FD8FF" opacity=".85"/>
+    <circle cx="28" cy="61" r="3.5" fill="#F5B83D" opacity=".45"/><circle cx="72" cy="61" r="3.5" fill="#F5B83D" opacity=".45"/>
+    <rect x="34" y="80" width="32" height="14" rx="7" fill="#1B2138" stroke="#56628C" stroke-width="2"/>
+    <text x="50" y="91.5" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="11" font-weight="700" fill="#F5B83D">₿</text>
+  </g></svg>`;
+}
+const av = (cls = "av") => `<span class="${cls} vbot">${robot()}</span>`;
+document.querySelectorAll("[data-bot]").forEach((el) => { el.innerHTML = robot(); });
+
+// Les yeux suivent la souris (sauf pendant une réponse)
+document.addEventListener("pointermove", (e) => {
+  document.querySelectorAll("[data-bot]").forEach((el) => {
+    if (el.classList.contains("thinking") || el.classList.contains("searching")) return;
+    const r = el.getBoundingClientRect(); if (!r.width) return;
+    const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+    const d = Math.hypot(dx, dy) || 1, k = Math.min(1, d / 300);
+    const eyes = el.querySelector(".rb-eyes");
+    if (eyes) eyes.style.transform = `translate(${(dx / d) * 4 * k}px, ${(dy / d) * 3 * k}px)`;
+  });
+}, { passive: true });
+
+// États de la mascotte : idle | thinking | searching | talking
+function mood(state, extra) {
+  for (const el of [$("vheadBot"), extra].filter(Boolean)) {
+    el.classList.remove("thinking", "searching", "talking");
+    if (state !== "idle") { el.classList.add(state); const e = el.querySelector(".rb-eyes"); if (e) e.style.transform = ""; }
+  }
+}
 const md = (t) => window.DOMPurify.sanitize(window.marked.parse(t || ""), { ADD_ATTR: ["target"] });
 
 function addUser(text) {
+  body.querySelector(".vhero")?.remove();
   const el = document.createElement("div"); el.className = "msg user"; el.textContent = text;
   body.appendChild(el); body.scrollTop = body.scrollHeight;
 }
@@ -83,14 +133,19 @@ function addBot(html = "") {
   const el = document.createElement("div"); el.className = "msg bot";
   el.innerHTML = `${av()}<div><div class="md">${html}</div><div class="vstatus" hidden></div><div class="vcost" hidden></div></div>`;
   body.appendChild(el); body.scrollTop = body.scrollHeight;
-  return { md: el.querySelector(".md"), status: el.querySelector(".vstatus"), cost: el.querySelector(".vcost") };
+  return { md: el.querySelector(".md"), status: el.querySelector(".vstatus"), cost: el.querySelector(".vcost"), bot: el.querySelector(".vbot") };
 }
 function welcome() {
   body.innerHTML = "";
   const hasKey = !!store.get("vega.key");
-  addBot(hasKey
-    ? `<p class="welcome">Salut Antoine. Je lis ton dashboard en direct : pression, gamma, flux, volatilité, futures, sentiment. Demande-moi d'expliquer un panneau, de faire le point sur ton DCA ou sur ta <b>poche opportunité</b>, ou ce que le marché attend cette semaine.</p>`
-    : `<p class="welcome">Salut Antoine. Pour que je puisse répondre, ouvre <b>Réglages</b>, colle ta clé API Anthropic (elle reste dans ce navigateur) et renseigne ton plan DCA.</p>`);
+  const hero = document.createElement("div");
+  hero.className = "vhero";
+  hero.innerHTML = `<span class="vbot vhero-bot" data-bot="hero">${robot()}</span>
+    <b>Salut Antoine, moi c'est Vega.</b>
+    <p>${hasKey
+      ? "Je lis ton dashboard en direct : pression, gamma, flux, volatilité, futures, sentiment. Demande-moi d'expliquer un panneau, de faire le point sur ton DCA et ta <b>poche opportunité</b>, ou ce que le marché attend cette semaine."
+      : "Pour que je puisse répondre, ouvre <b>Réglages</b>, colle ta clé API Anthropic (elle reste dans ce navigateur) et renseigne ton plan DCA."}</p>`;
+  body.appendChild(hero);
 }
 
 function open(q) {
@@ -165,7 +220,7 @@ async function send(question) {
 
   const out = addBot(); let text = ""; let cost = 0;
   const status = (t) => { out.status.hidden = !t; out.status.innerHTML = t ? `<span class="dot load"></span>${t}` : ""; };
-  setBusy(true); status("Vega analyse les données…");
+  setBusy(true); status("Vega analyse les données…"); mood("thinking", out.bot);
   try {
     for (let turn = 0; turn < 4; turn++) {
       stream = c.beta.messages.stream({
@@ -181,9 +236,9 @@ async function send(question) {
       for await (const ev of stream) {
         if (ev.type === "content_block_start") {
           const t = ev.content_block.type;
-          if (t === "server_tool_use") status("Recherche sur le web…");
-          else if (t === "thinking") status("Réflexion…");
-          else if (t === "text") { status(""); if (text && !text.endsWith("\n")) text += "\n\n"; }
+          if (t === "server_tool_use") { status("Recherche sur le web…"); mood("searching", out.bot); }
+          else if (t === "thinking") { status("Réflexion…"); mood("thinking", out.bot); }
+          else if (t === "text") { status(""); mood("talking", out.bot); if (text && !text.endsWith("\n")) text += "\n\n"; }
         } else if (ev.type === "content_block_delta" && ev.delta.type === "text_delta") {
           text += ev.delta.text; out.md.innerHTML = md(text);
           const nearBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 120;
@@ -208,7 +263,7 @@ async function send(question) {
     // retire le tour utilisateur resté sans réponse pour garder un historique valide
     if (history.length && history[history.length - 1].role === "user") { history.pop(); lastSnapSent = null; }
   } finally {
-    status(""); setBusy(false); stream = null;
+    status(""); setBusy(false); stream = null; mood("idle", out.bot);
   }
 }
 
