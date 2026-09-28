@@ -230,13 +230,21 @@
   /* Recent */
   .recent-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
   .link { appearance: none; border: 0; background: none; cursor: pointer; padding: 8px 0 8px 8px; color: var(--muted); font-size: 14px; text-decoration: underline; text-underline-offset: 3px; }
+  .recent-head h2 .who { margin-left: 4px; font-family: var(--body); font-weight: 400; font-size: 14px; letter-spacing: 0; color: var(--muted); }
   .recent-list { list-style: none; margin: 0; padding: 0; }
+  .recent-list li { display: flex; align-items: center; gap: 4px; border-bottom: 1px solid var(--line); }
+  .recent-list li:first-child { border-top: 1px solid var(--line); }
   .recent-item {
-    appearance: none; border: 0; background: none; cursor: pointer; width: 100%; text-align: left;
+    appearance: none; border: 0; background: none; cursor: pointer; flex: 1; min-width: 0; text-align: left;
     display: flex; align-items: center; gap: 12px; padding: 10px 2px;
-    border-bottom: 1px solid var(--line);
   }
-  .recent-list li:first-child .recent-item { border-top: 1px solid var(--line); }
+  .forget {
+    appearance: none; border: 0; background: transparent; cursor: pointer; flex: none;
+    width: 40px; height: 40px; border-radius: 10px; color: var(--muted);
+    display: grid; place-items: center;
+  }
+  .forget:hover { background: var(--surface-2); color: var(--ink); }
+  .forget svg { width: 16px; height: 16px; }
   .rt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
   .rt b { font-size: 16px; overflow-wrap: anywhere; }
   .rt .tr { font-size: 14px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -375,8 +383,8 @@
 
   <section id="recent" hidden>
     <div class="recent-head">
-      <h2>Recent</h2>
-      <button type="button" class="link" id="clear-history">Clear</button>
+      <h2>Recent<span class="who" id="recent-who"></span></h2>
+      <button type="button" class="link" id="clear-history">Clear all</button>
     </div>
     <ul class="recent-list" id="recent-list"></ul>
   </section>
@@ -442,10 +450,32 @@
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
   };
 
-  let me = ORDER[store.get('pbp.me', 'antoine')] ? store.get('pbp.me', 'antoine') : 'antoine';
-  let hist = store.get('pbp.history', []);
-  if (!Array.isArray(hist)) hist = [];
+  /* Each person has their own history and their own "where I left off" state on the device.
+     The page URL carries who is using it (#antoine / #bianca), so a bookmark or a home-screen
+     icon opens on the right person even if the browser storage was wiped. */
+  const NAMES = { antoine: 'Antoine', bianca: 'Bianca' };
+  const histKey = (who) => 'pbp.history.' + who;
+  const stateKey = (who) => 'pbp.state.' + who;
+  const loadHist = (who) => { const h = store.get(histKey(who), []); return Array.isArray(h) ? h : []; };
+
+  function initialMe() {
+    const fromUrl = (location.hash || '').slice(1).toLowerCase();
+    if (ORDER[fromUrl]) return fromUrl;
+    const saved = store.get('pbp.me', 'antoine');
+    return ORDER[saved] ? saved : 'antoine';
+  }
+  function syncUrl() { try { history.replaceState(null, '', '#' + me); } catch (e) {} }
+
+  let me = initialMe();
+  store.set('pbp.me', me);
+  const legacy = store.get('pbp.history', null); // first version kept one shared list
+  if (Array.isArray(legacy)) {
+    if (!loadHist(me).length) store.set(histKey(me), legacy);
+    try { localStorage.removeItem('pbp.history'); } catch (e) {}
+  }
+  let hist = loadHist(me);
   let current = null;
+  let askedPersist = false;
   let typeTimer = 0, ctl = null, reqId = 0, detailsCtl = null, statusTimer = 0;
 
   /* ---------- engine: Claude inside the Claude viewer, Google Translate elsewhere ---------- */
@@ -669,10 +699,17 @@ Use correct Romanian diacritics.`;
       btn.className = 'recent-item';
       const tr = ORDER[me].filter((l) => l !== h.src && h.t && h.t[l]).map((l) => h.t[l]).join(' · ');
       btn.innerHTML = flagHTML(h.src, 'sm') + '<span class="rt"><b lang="' + h.src + '">' + esc(h.text) + '</b><span class="tr">' + esc(tr) + '</span></span>';
-      btn.addEventListener('click', () => loadEntry(h, true));
-      li.append(btn);
+      btn.addEventListener('click', () => { loadEntry(h, true); saveState(); });
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'forget';
+      del.setAttribute('aria-label', 'Remove “' + h.text + '” from recent');
+      del.innerHTML = '<svg aria-hidden="true"><use href="#i-clear"/></svg>';
+      del.addEventListener('click', () => forget(h));
+      li.append(btn, del);
       return li;
     }));
+    $('#recent-who').textContent = ' · ' + NAMES[me];
     $('#recent').hidden = !hist.length;
   }
 
@@ -682,8 +719,36 @@ Use correct Romanian diacritics.`;
     hist = hist.filter((h) => key(h) !== key(e));
     hist.unshift({ src: e.src, text: e.text, t: e.t, d: e.d || null, g: e.g || null, at: Date.now() });
     hist = hist.slice(0, 40);
-    store.set('pbp.history', hist);
+    store.set(histKey(me), hist);
     renderHistory();
+    if (!askedPersist) {
+      askedPersist = true;
+      try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (e) {}
+    }
+  }
+
+  function forget(h) {
+    hist = hist.filter((x) => x !== h);
+    store.set(histKey(me), hist);
+    renderHistory();
+  }
+
+  // What is on screen for this person, so the page reopens where they left it.
+  function saveState(draft) {
+    if (current && current.example) return;
+    const s = draft || (current
+      ? { src: current.src, text: current.text, t: current.t, d: current.d || null, g: current.g || null }
+      : { src: null });
+    store.set(stateKey(me), s);
+  }
+
+  function restoreState() {
+    const s = store.get(stateKey(me), undefined);
+    if (s === undefined) { loadEntry(hist.length ? hist[0] : EXAMPLE, false); return; }
+    if (!s || !CODES.includes(s.src) || !str(s.text)) { showEmpty(); return; }
+    const t = Object.assign({}, s.t && typeof s.t === 'object' ? s.t : {}, { [s.src]: s.text });
+    loadEntry({ src: s.src, text: s.text, t, d: s.d || null, g: s.g || null }, false);
+    if (!others(s.src).some((l) => str(t[l]))) runTranslate(s.src, str(s.text)); // closed mid-typing
   }
 
   /* ---------- actions ---------- */
@@ -718,6 +783,7 @@ Use correct Romanian diacritics.`;
       markSource(s);
       current = { src: s, text, t: Object.assign({}, res.t, { [s]: text }), d: null, g: res.g || null };
       remember(current);
+      saveState();
       renderDetails(null);
       syncControls();
     } catch (e) {
@@ -738,7 +804,8 @@ Use correct Romanian diacritics.`;
     syncControls();
     setLoading(l, false);
     setStatus('');
-    if (!text.trim()) { for (const o of others(l)) setValue(o, ''); updateTools(); return; }
+    if (!text.trim()) { for (const o of others(l)) setValue(o, ''); updateTools(); saveState({ src: null }); return; }
+    saveState({ src: l, text, t: { [l]: text }, d: null, g: null });
     for (const o of others(l)) blockEl(o).classList.add('is-stale');
     typeTimer = setTimeout(() => runTranslate(l, text.trim()), 800);
   }
@@ -777,6 +844,7 @@ Use correct Romanian diacritics.`;
       if (current !== cur) return;
       cur.d = normalizeDetails(d);
       remember(cur);
+      saveState();
       renderDetails(cur.d);
     } catch (e) {
       if (signal.aborted || current !== cur || (e && e.code === 'cancelled')) return;
@@ -814,7 +882,7 @@ Use correct Romanian diacritics.`;
     });
   }
 
-  function clearAll(l) {
+  function showEmpty() {
     stopAll();
     current = null;
     for (const c of CODES) setValue(c, '');
@@ -823,6 +891,11 @@ Use correct Romanian diacritics.`;
     renderDetails(null);
     syncControls();
     setStatus('');
+  }
+
+  function clearAll(l) {
+    showEmpty();
+    saveState();
     ta(l).focus();
   }
 
@@ -830,8 +903,19 @@ Use correct Romanian diacritics.`;
     const wrap = $('#blocks');
     for (const l of ORDER[me]) wrap.append(blockEl(l));
     document.querySelectorAll('[data-me]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.me === me)));
-    if (current && current.d) renderDetails(normalizeDetails(current.d));
     renderHistory();
+  }
+
+  // Switching person switches to their order, their history and their last screen.
+  function switchTo(who) {
+    if (who === me || !ORDER[who]) return;
+    stopAll();
+    me = who;
+    store.set('pbp.me', me);
+    syncUrl();
+    hist = loadHist(me);
+    applyMe();
+    restoreState();
   }
 
   /* ---------- wiring ---------- */
@@ -853,11 +937,8 @@ Use correct Romanian diacritics.`;
     document.getElementById('clear-' + l).addEventListener('click', () => clearAll(l));
   }
 
-  document.querySelectorAll('[data-me]').forEach((b) => b.addEventListener('click', () => {
-    me = b.dataset.me;
-    store.set('pbp.me', me);
-    applyMe();
-  }));
+  document.querySelectorAll('[data-me]').forEach((b) => b.addEventListener('click', () => switchTo(b.dataset.me)));
+  window.addEventListener('hashchange', () => switchTo((location.hash || '').slice(1).toLowerCase()));
 
   $('#more').addEventListener('click', loadDetails);
 
@@ -865,23 +946,24 @@ Use correct Romanian diacritics.`;
   $('#clear-history').addEventListener('click', (e) => {
     const btn = e.currentTarget;
     if (!clearArmed) {
-      btn.textContent = 'Tap again to clear';
-      clearArmed = setTimeout(() => { clearArmed = 0; btn.textContent = 'Clear'; }, 3000);
+      btn.textContent = 'Tap again to clear all';
+      clearArmed = setTimeout(() => { clearArmed = 0; btn.textContent = 'Clear all'; }, 3000);
       return;
     }
     clearTimeout(clearArmed);
     clearArmed = 0;
-    btn.textContent = 'Clear';
+    btn.textContent = 'Clear all';
     hist = [];
-    store.set('pbp.history', hist);
+    store.set(histKey(me), hist);
     renderHistory();
   });
 
   window.addEventListener('resize', () => CODES.forEach((l) => autosize(ta(l))));
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => CODES.forEach((l) => autosize(ta(l))));
 
+  syncUrl();
   applyMe();
-  loadEntry(hist.length ? hist[0] : EXAMPLE, false);
+  restoreState();
 })();
 </script>
 </body>

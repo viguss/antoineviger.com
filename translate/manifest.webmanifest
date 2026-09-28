@@ -2,7 +2,6 @@
   "name": "Pont · Bridge · Pod",
   "short_name": "Bridge",
   "description": "French, English and Romanian side by side.",
-  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#F3F4F9",
