@@ -81,7 +81,7 @@
   /* ---------- soap bubbles: one per page ---------- */
   .bubbles { position: fixed; inset: 0; pointer-events: none; }
   .bubble {
-    --d: clamp(104px, 17vmin, 156px);
+    --d: clamp(70px, 11.5vmin, 104px);
     position: absolute; left: 0; top: 0;
     width: var(--d); height: var(--d);
     border-radius: 50%;
@@ -92,7 +92,7 @@
     will-change: transform;
     outline: none;
   }
-  .bubble.small { --d: clamp(94px, 15vmin, 138px); }
+  .bubble.small { --d: clamp(62px, 10vmin, 92px); }
   .bubble .body {
     position: absolute; inset: 0;
     border-radius: 50%;
@@ -134,28 +134,17 @@
     opacity: .5;
   }
   .bubble .sym {
-    position: absolute; left: 50%; top: 47%;
-    width: 42%; height: 42%;
+    position: absolute; left: 50%; top: 50%;
+    width: 34%; height: 34%;
     transform: translate(-50%, -50%);
     filter: drop-shadow(0 0 6px rgba(170, 185, 255, .55));
-  }
-  .bubble .label {
-    position: absolute; left: 0; right: 0; bottom: 15%;
-    text-align: center;
-    font-size: 9.5px; font-weight: 400;
-    letter-spacing: .28em; text-indent: .28em;
-    text-transform: uppercase;
-    opacity: 0;
-    transition: opacity .3s ease;
   }
   .bubble:hover .body, .bubble:focus-visible .body {
     box-shadow: 0 0 44px rgba(170, 185, 255, .28), inset 0 0 26px rgba(255, 255, 255, .10);
   }
-  .bubble:hover .label, .bubble:focus-visible .label { opacity: .7; }
   .bubble:focus-visible .body { outline: 1px solid rgba(255, 255, 255, .6); outline-offset: 5px; }
-  @media (hover: none) { .bubble .label { opacity: .55; } }
 
-  .bubble.pop .body, .bubble.pop .film, .bubble.pop .shine, .bubble.pop .sym, .bubble.pop .label {
+  .bubble.pop .body, .bubble.pop .film, .bubble.pop .shine, .bubble.pop .sym {
     animation: pop .32s cubic-bezier(.2, .7, .3, 1) forwards;
   }
 
@@ -200,7 +189,6 @@
           <path d="M21 7.5V12M27 7.5V12M21 37v4.5M27 37v4.5"/>
         </g>
       </svg>
-      <span class="label">btc</span>
     </a>
     <a class="bubble small" href="/translate/" id="bubble-translate" aria-label="Pont · Bridge · Pod, traducteur" style="--w: 6.3s; --s: 19s">
       <span class="body"></span>
@@ -216,7 +204,6 @@
           <path d="M32.6 20.6c.6 1.1 1.5 1.7 2.5 1.7s1.9-.6 2.5-1.7"/>
         </g>
       </svg>
-      <span class="label">translate</span>
     </a>
   </nav>
 
