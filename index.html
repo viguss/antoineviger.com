@@ -78,8 +78,99 @@
     padding-left: .42em; /* balance the trailing letter-spacing */
   }
 
+  /* ---------- soap bubbles: one per page ---------- */
+  .bubbles { position: fixed; inset: 0; pointer-events: none; }
+  .bubble {
+    --d: clamp(104px, 17vmin, 156px);
+    position: absolute; left: 0; top: 0;
+    width: var(--d); height: var(--d);
+    border-radius: 50%;
+    pointer-events: auto;
+    color: rgba(255, 255, 255, .9);
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+    will-change: transform;
+    outline: none;
+  }
+  .bubble.small { --d: clamp(94px, 15vmin, 138px); }
+  .bubble .body {
+    position: absolute; inset: 0;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle closest-side at 50% 50%,
+        rgba(255, 255, 255, 0) 62%,
+        rgba(200, 215, 255, .07) 78%,
+        rgba(255, 255, 255, .22) 93%,
+        rgba(255, 255, 255, .42) 98.5%,
+        rgba(255, 255, 255, 0) 100%);
+    box-shadow: 0 0 34px rgba(150, 165, 255, .10), inset 0 0 22px rgba(255, 255, 255, .05);
+    -webkit-backdrop-filter: saturate(1.35) brightness(1.08);
+    backdrop-filter: saturate(1.35) brightness(1.08);
+    animation: wobble var(--w, 5.5s) ease-in-out infinite alternate;
+    transition: box-shadow .3s ease;
+  }
+  /* thin-film colours sliding around the rim */
+  .bubble .film {
+    position: absolute; inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, #ff7ad9, #7ae7ff, #b7ff8a, #ffe27a, #b38cff, #7ae7ff, #ff7ad9);
+    -webkit-mask: radial-gradient(circle closest-side, transparent 70%, #000 90%, #000 98%, transparent 100%);
+    mask: radial-gradient(circle closest-side, transparent 70%, #000 90%, #000 98%, transparent 100%);
+    mix-blend-mode: screen;
+    opacity: .42;
+    filter: blur(1.5px);
+    animation: spin var(--s, 16s) linear infinite;
+  }
+  .bubble .shine {
+    position: absolute; left: 17%; top: 13%;
+    width: 32%; height: 20%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse closest-side, rgba(255, 255, 255, .9), rgba(255, 255, 255, 0));
+    transform: rotate(-32deg);
+  }
+  .bubble .shine.small {
+    left: auto; top: auto; right: 19%; bottom: 15%;
+    width: 11%; height: 7%;
+    opacity: .5;
+  }
+  .bubble .sym {
+    position: absolute; left: 50%; top: 47%;
+    width: 42%; height: 42%;
+    transform: translate(-50%, -50%);
+    filter: drop-shadow(0 0 6px rgba(170, 185, 255, .55));
+  }
+  .bubble .label {
+    position: absolute; left: 0; right: 0; bottom: 15%;
+    text-align: center;
+    font-size: 9.5px; font-weight: 400;
+    letter-spacing: .28em; text-indent: .28em;
+    text-transform: uppercase;
+    opacity: 0;
+    transition: opacity .3s ease;
+  }
+  .bubble:hover .body, .bubble:focus-visible .body {
+    box-shadow: 0 0 44px rgba(170, 185, 255, .28), inset 0 0 26px rgba(255, 255, 255, .10);
+  }
+  .bubble:hover .label, .bubble:focus-visible .label { opacity: .7; }
+  .bubble:focus-visible .body { outline: 1px solid rgba(255, 255, 255, .6); outline-offset: 5px; }
+  @media (hover: none) { .bubble .label { opacity: .55; } }
+
+  .bubble.pop .body, .bubble.pop .film, .bubble.pop .shine, .bubble.pop .sym, .bubble.pop .label {
+    animation: pop .32s cubic-bezier(.2, .7, .3, 1) forwards;
+  }
+
+  @keyframes wobble {
+    0%   { transform: scale(1, 1); }
+    50%  { transform: scale(1.035, .965); }
+    100% { transform: scale(.97, 1.03); }
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pop {
+    to { transform: scale(1.45); opacity: 0; filter: blur(2px); }
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    .glow { animation: none; }
+    .glow, .bubble .body, .bubble .film { animation: none; }
   }
 </style>
 </head>
@@ -94,5 +185,143 @@
   <main>
     <h1>Antoine Viger</h1>
   </main>
+
+  <nav class="bubbles" aria-label="Pages">
+    <a class="bubble" href="/btc/" id="bubble-btc" aria-label="BTC Options Radar" style="--w: 5.2s; --s: 15s">
+      <span class="body"></span>
+      <span class="film"></span>
+      <span class="shine"></span>
+      <span class="shine small"></span>
+      <svg class="sym" viewBox="0 0 48 48" aria-hidden="true">
+        <g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M13 12h15a6 6 0 0 1 0 12H17"/>
+          <path d="M17 24h13a6.5 6.5 0 0 1 0 13H13"/>
+          <path d="M17 12v25"/>
+          <path d="M21 7.5V12M27 7.5V12M21 37v4.5M27 37v4.5"/>
+        </g>
+      </svg>
+      <span class="label">btc</span>
+    </a>
+    <a class="bubble small" href="/translate/" id="bubble-translate" aria-label="Pont · Bridge · Pod, traducteur" style="--w: 6.3s; --s: 19s">
+      <span class="body"></span>
+      <span class="film"></span>
+      <span class="shine"></span>
+      <span class="shine small"></span>
+      <svg class="sym" viewBox="0 0 48 48" aria-hidden="true">
+        <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 10h20a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H15l-6 5v-5H6a3 3 0 0 1-3-3V13a3 3 0 0 1 3-3z"/>
+          <path d="M11 24l5-11 5 11M12.8 20h6.4"/>
+          <path d="M29 18h13a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-3v5l-6-5h-8a3 3 0 0 1-3-3v-5"/>
+          <path d="M31.8 26c.9-.9 2-1.4 3.4-1.4 2.2 0 3.4 1.2 3.4 3.2v5.6M38.6 29.4c-4.6 0-6.9 1-6.9 2.9 0 1.3 1 2.1 2.5 2.1 2.2 0 4.4-1.6 4.4-4"/>
+          <path d="M32.6 20.6c.6 1.1 1.5 1.7 2.5 1.7s1.9-.6 2.5-1.7"/>
+        </g>
+      </svg>
+      <span class="label">translate</span>
+    </a>
+  </nav>
+
+<script>
+(() => {
+  const bubbles = [...document.querySelectorAll('.bubble')].map((el, i) => ({
+    el, i,
+    x: 0, y: 0, vx: 0, vy: 0, d: 0,
+    seed: Math.random() * 1000,
+    hold: false,
+  }));
+  const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W = innerWidth, H = innerHeight;
+
+  function measure() {
+    W = innerWidth; H = innerHeight;
+    for (const b of bubbles) b.d = b.el.offsetWidth;
+  }
+
+  // Start on either side of the name, a little above and below it
+  function place() {
+    measure();
+    const spots = [[0.24, 0.32], [0.72, 0.66]];
+    for (const b of bubbles) {
+      const [fx, fy] = spots[b.i % spots.length];
+      b.x = fx * W - b.d / 2 + (Math.random() - 0.5) * W * 0.08;
+      b.y = fy * H - b.d / 2 + (Math.random() - 0.5) * H * 0.08;
+      clamp(b);
+      draw(b);
+    }
+  }
+
+  function clamp(b) {
+    const pad = 8;
+    b.x = Math.min(Math.max(b.x, pad), Math.max(pad, W - b.d - pad));
+    b.y = Math.min(Math.max(b.y, pad), Math.max(pad, H - b.d - pad));
+  }
+
+  const draw = (b) => { b.el.style.transform = `translate3d(${b.x.toFixed(1)}px, ${b.y.toFixed(1)}px, 0)`; };
+
+  let last = 0;
+  function step(now) {
+    const dt = Math.min(50, now - (last || now)) / 16.67;
+    last = now;
+    const t = now / 1000;
+    const maxSpeed = Math.max(0.35, Math.min(W, H) / 1400); // px per frame, slow drift
+    for (const b of bubbles) {
+      // wander: a smooth, ever-changing push made of slow sine waves
+      b.vx += (Math.sin(t * 0.29 + b.seed) + 0.6 * Math.sin(t * 0.13 + b.seed * 2.3)) * 0.010 * dt;
+      b.vy += (Math.cos(t * 0.23 + b.seed * 1.7) + 0.6 * Math.sin(t * 0.11 + b.seed)) * 0.010 * dt;
+
+      // soft walls
+      const m = 30;
+      if (b.x < m) b.vx += (m - b.x) * 0.0025 * dt;
+      if (b.y < m) b.vy += (m - b.y) * 0.0025 * dt;
+      if (b.x > W - b.d - m) b.vx -= (b.x - (W - b.d - m)) * 0.0025 * dt;
+      if (b.y > H - b.d - m) b.vy -= (b.y - (H - b.d - m)) * 0.0025 * dt;
+
+      // keep the name in the middle readable
+      const cx = b.x + b.d / 2 - W / 2, cy = b.y + b.d / 2 - H / 2;
+      const keep = b.d / 2 + 120, dc = Math.hypot(cx, cy);
+      if (dc < keep && dc > 0) { b.vx += (cx / dc) * 0.02 * dt; b.vy += (cy / dc) * 0.02 * dt; }
+
+      // bubbles drift apart instead of overlapping
+      for (const o of bubbles) {
+        if (o === b) continue;
+        const dx = (b.x + b.d / 2) - (o.x + o.d / 2), dy = (b.y + b.d / 2) - (o.y + o.d / 2);
+        const dist = Math.hypot(dx, dy), min = (b.d + o.d) / 2 + 24;
+        if (dist < min && dist > 0) { b.vx += (dx / dist) * 0.03 * dt; b.vy += (dy / dist) * 0.03 * dt; }
+      }
+
+      const damping = b.hold ? 0.85 : 0.985;
+      b.vx *= Math.pow(damping, dt); b.vy *= Math.pow(damping, dt);
+      const sp = Math.hypot(b.vx, b.vy);
+      if (sp > maxSpeed) { b.vx *= maxSpeed / sp; b.vy *= maxSpeed / sp; }
+      b.x += b.vx * dt; b.y += b.vy * dt;
+      clamp(b);
+      draw(b);
+    }
+    requestAnimationFrame(step);
+  }
+
+  // Hovering or focusing a bubble makes it hold still so it's easy to catch
+  for (const b of bubbles) {
+    b.el.addEventListener('pointerenter', () => { b.hold = true; });
+    b.el.addEventListener('pointerleave', () => { b.hold = false; });
+    b.el.addEventListener('focus', () => { b.hold = true; });
+    b.el.addEventListener('blur', () => { b.hold = false; });
+
+    // Pop, then go. Cmd/ctrl-click and middle-click keep the browser's normal behaviour.
+    b.el.addEventListener('click', (e) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || reduceMotion) return;
+      e.preventDefault();
+      b.el.classList.add('pop');
+      setTimeout(() => { location.href = b.el.href; }, 260);
+    });
+  }
+
+  // Coming back with the Back button restores the page from cache: un-pop the bubbles
+  addEventListener('pageshow', () => bubbles.forEach((b) => b.el.classList.remove('pop')));
+  addEventListener('resize', () => { measure(); bubbles.forEach((b) => { clamp(b); draw(b); }); });
+
+  place();
+  if (!reduceMotion) requestAnimationFrame(step);
+})();
+</script>
 </body>
 </html>
