@@ -895,7 +895,15 @@ Use correct Romanian diacritics.`;
           if (v) { cur.t[l] = v; setValue(l, v); }
         }
       }
-      cur.d = normalizeDetails(d);
+      const nd = normalizeDetails(d);
+      const empty = !nd.examples.length && !nd.tip && CODES.every((l) => !nd.sense[l] && !nd.alternatives[l].length);
+      if (empty) {
+        setStatus(engineFor('details') === 'google'
+          ? 'Google Translate has nothing more on this one. Add the family code at the bottom of the page to ask Claude.'
+          : 'Nothing more to show for this one.');
+        return;
+      }
+      cur.d = nd;
       remember(cur);
       saveState();
       renderDetails(cur.d);
