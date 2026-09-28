@@ -206,8 +206,6 @@
   .btn svg { width: 18px; height: 18px; }
   .status { font-size: 14px; color: var(--muted); }
   .status.is-error { color: var(--danger); }
-  .note { margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); color: var(--muted); font-size: 14px; }
-  .note b { color: var(--ink); }
   .tip { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 14px; background: var(--tip-bg); color: var(--tip-ink); font-size: 15px; }
   .tip .label { color: inherit; opacity: .8; }
 
@@ -386,8 +384,6 @@
     <span class="status" id="status" role="status" aria-live="polite"></span>
   </div>
 
-  <p class="note" id="example-note" hidden><b>Example:</b> “dor” is how Romanians say they miss someone. Type in any box to start.<span id="example-extra" hidden> Results this rich come from Claude: see the bottom of the page.</span></p>
-
   <aside class="tip" id="tip" hidden><span class="label">Watch out</span><span id="tip-text"></span></aside>
 
   <section id="context" hidden>
@@ -410,7 +406,7 @@
 
   <form class="settings" id="settings" hidden>
     <h2>Claude</h2>
-    <p>Enter the family code to get translations, meanings and examples from Claude, like the “dor” example. The code is saved on this device only.</p>
+    <p>Enter the family code to get translations, meanings and examples from Claude. The code is saved on this device only.</p>
     <label for="family-code">Family code</label>
     <input id="family-code" type="password" autocomplete="off" autocapitalize="off" spellcheck="false">
     <p class="settings-msg" id="settings-msg" role="status" hidden></p>
@@ -431,41 +427,6 @@
   const CODES = ['fr', 'en', 'ro'];
   const ORDER = { antoine: ['fr', 'en', 'ro'], bianca: ['ro', 'en', 'fr'] };
   const OFF_CODES = ['not_granted', 'sampling_disabled', 'not_declared', 'capability_disabled', 'capability_removed'];
-
-  const EXAMPLE = {
-    example: true, src: 'ro', text: 'dor',
-    t: { fr: 'le manque', en: 'longing', ro: 'dor' },
-    d: {
-      sense: {
-        fr: 'Le fait que quelqu’un ou quelque chose qu’on aime nous manque, avec de la nostalgie.',
-        en: 'The deep feeling of missing someone or something you love.',
-        ro: 'Sentimentul că îți lipsește cineva sau ceva drag.',
-      },
-      alternatives: {
-        fr: [
-          { word: 'la nostalgie', nuance: 'plutôt tournée vers le passé' },
-          { word: 'le mal du pays', nuance: 'le manque de son pays' },
-          { word: 'le désir', nuance: 'plus fort, envie d’avoir' },
-        ],
-        en: [
-          { word: 'to miss', nuance: 'the everyday verb: “I miss you”' },
-          { word: 'yearning', nuance: 'stronger, more poetic' },
-          { word: 'homesickness', nuance: 'missing your home or country' },
-        ],
-        ro: [
-          { word: 'nostalgie', nuance: 'mai mult despre trecut' },
-          { word: 'alean', nuance: 'poetic, din folclor' },
-          { word: 'a tânji', nuance: 'verb: a dori ceva intens' },
-        ],
-      },
-      examples: [
-        { ro: 'Mi-e **dor** de tine.', fr: 'Tu me **manques**.', en: 'I **miss** you.' },
-        { ro: 'Mi-e **dor** de casă.', fr: 'La maison me **manque**.', en: 'I **miss** home.' },
-        { ro: 'Mi-e tare **dor** de mare.', fr: 'La mer me **manque** beaucoup.', en: 'I really **miss** the sea.' },
-      ],
-      tip: 'English has no noun that matches “dor”: use the verb “to miss”. French flips it: “I miss you” = “Tu me manques”.',
-    },
-  };
 
   const $ = (s) => document.querySelector(s);
   const blockEl = (l) => document.getElementById('block-' + l);
@@ -735,7 +696,6 @@ Use correct Romanian diacritics.`;
     more.hidden = !has || !!current.d;
     more.disabled = false;
     $('#more-label').textContent = 'Meaning & examples';
-    $('#example-note').hidden = !(current && current.example);
     updateTools();
   }
 
@@ -806,7 +766,6 @@ Use correct Romanian diacritics.`;
   }
 
   function remember(e) {
-    if (e.example) return;
     const key = (x) => x.src + '|' + x.text.toLowerCase();
     hist = hist.filter((h) => key(h) !== key(e));
     hist.unshift({ src: e.src, text: e.text, t: e.t, d: e.d || null, g: e.g || null, at: Date.now() });
@@ -827,7 +786,6 @@ Use correct Romanian diacritics.`;
 
   // What is on screen for this person, so the page reopens where they left it.
   function saveState(draft) {
-    if (current && current.example) return;
     const s = draft || (current
       ? { src: current.src, text: current.text, t: current.t, d: current.d || null, g: current.g || null }
       : { src: null });
@@ -836,7 +794,7 @@ Use correct Romanian diacritics.`;
 
   function restoreState() {
     const s = store.get(stateKey(me), undefined);
-    if (s === undefined) { loadEntry(hist.length ? hist[0] : EXAMPLE, false); return; }
+    if (s === undefined) { if (hist.length) loadEntry(hist[0], false); else showEmpty(); return; }
     if (!s || !CODES.includes(s.src) || !str(s.text)) { showEmpty(); return; }
     const t = Object.assign({}, s.t && typeof s.t === 'object' ? s.t : {}, { [s.src]: s.text });
     loadEntry({ src: s.src, text: s.text, t, d: s.d || null, g: s.g || null }, false);
@@ -997,7 +955,6 @@ Use correct Romanian diacritics.`;
     const btn = $('#open-settings');
     btn.hidden = inClaude;
     btn.textContent = engine === 'relay' ? 'Settings' : 'Get richer results with Claude';
-    $('#example-extra').hidden = inClaude || engine !== 'google';
   }
 
   function useCode(code) {
