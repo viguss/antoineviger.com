@@ -263,6 +263,7 @@
   }
   .settings input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
   .settings-actions { display: flex; align-items: center; gap: 14px; margin-top: 6px; }
+  .settings .settings-msg { margin: 0; color: var(--danger); }
 
   @media (prefers-reduced-motion: reduce) {
     .block, textarea { transition: none; }
@@ -409,14 +410,13 @@
 
   <form class="settings" id="settings" hidden>
     <h2>Claude</h2>
-    <p>With a Claude API key, translations, meanings and examples come from Claude, like the “dor” example. The key stays in this browser only. On antoineviger.com it is the same key Vega uses.</p>
-    <label for="api-key">API key</label>
-    <input id="api-key" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-…">
-    <label for="api-ws">Workspace ID <span>only if your key needs one</span></label>
-    <input id="api-ws" type="text" autocomplete="off" spellcheck="false" placeholder="wrkspc_…">
+    <p>Enter the family code to get translations, meanings and examples from Claude, like the “dor” example. The code is saved on this device only.</p>
+    <label for="family-code">Family code</label>
+    <input id="family-code" type="password" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <p class="settings-msg" id="settings-msg" role="status" hidden></p>
     <div class="settings-actions">
-      <button type="submit" class="btn">Save</button>
-      <button type="button" class="link" id="remove-key">Remove key</button>
+      <button type="submit" class="btn" id="save-code">Save</button>
+      <button type="button" class="link" id="forget-code">Forget the code</button>
     </div>
   </form>
 </main>
@@ -509,17 +509,17 @@
 
   /* ---------- engines ----------
      claude: the viewer's own Claude account, inside the Claude app.
-     api:    a Claude API key saved in this browser (on antoineviger.com, the same key as Vega).
+     relay:  Antoine's Claude relay (Supabase Edge Function antoineviger-translate), unlocked by the family code.
      google: Google Translate, no account needed. */
   const inClaude = !!(window.claude && typeof window.claude.use === 'function');
   const raw = {
     get(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } },
     set(k, v) { try { if (v) localStorage.setItem(k, v); else localStorage.removeItem(k); } catch (e) {} },
   };
-  const API_MODEL = 'claude-opus-5';
-  const SDK_URL = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@0.126.0/+esm';
-  let sample = null, engine = 'google', sdk = null, api = null, apiFor = '';
-  const pickEngine = () => (sample ? 'claude' : !inClaude && raw.get('vega.key') ? 'api' : 'google');
+  const RELAY_URL = 'https://vxofrlvkjinbadiiegtn.supabase.co/functions/v1/antoineviger-translate';
+  const CODE_KEY = 'pbp.code';
+  let sample = null, engine = 'google';
+  const pickEngine = () => (sample ? 'claude' : !inClaude && raw.get(CODE_KEY) ? 'relay' : 'google');
   const ready = (async () => {
     if (inClaude) { try { sample = await window.claude.use('sample'); } catch (e) { sample = null; } }
     engine = pickEngine();
@@ -557,17 +557,6 @@ Rules:
 - tip: one short sentence in simple English about a trap for French or Romanian speakers (false friend, word order, common mistake), or "" if there is none.
 Use correct Romanian diacritics.`;
 
-  const obj = (props) => ({ type: 'object', properties: props, required: Object.keys(props), additionalProperties: false });
-  const S = { type: 'string' };
-  const ALTS = { type: 'array', items: obj({ word: S, nuance: S }) };
-  const TRANSLATION_SCHEMA = obj({ detected: { type: 'string', enum: CODES }, fr: S, en: S, ro: S });
-  const DETAILS_SCHEMA = obj({
-    sense: obj({ fr: S, en: S, ro: S }),
-    alternatives: obj({ fr: ALTS, en: ALTS, ro: ALTS }),
-    examples: { type: 'array', items: obj({ fr: S, en: S, ro: S }) },
-    tip: S,
-  });
-
   function readTranslation(src, text, j) {
     const det = CODES.includes(j && j.detected) ? j.detected : src;
     const t = { fr: str(j && j.fr), en: str(j && j.en), ro: str(j && j.ro) };
@@ -583,52 +572,31 @@ Use correct Romanian diacritics.`;
     return sample.json(detailsPrompt(cur), { modelTier: 'quick', signal });
   }
 
-  async function apiClient() {
-    const key = raw.get('vega.key'), ws = raw.get('vega.ws');
-    if (!key) throw { code: 'bad_key' };
-    if (!sdk) sdk = import(SDK_URL).then((m) => m.default);
-    let Anthropic;
-    try { Anthropic = await sdk; } catch (e) { sdk = null; throw { code: 'upstream_error' }; }
-    if (!api || apiFor !== key + '|' + ws) {
-      // Keys that aren't attached to a workspace need the anthropic-workspace-id header (same as Vega)
-      api = new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true, maxRetries: 1, defaultHeaders: ws ? { 'anthropic-workspace-id': ws } : {} });
-      apiFor = key + '|' + ws;
-    }
-    return { client: api, Anthropic };
-  }
-
-  async function askApi(prompt, schema, effort, signal) {
-    const { client, Anthropic } = await apiClient();
-    let res;
+  async function askRelay(payload, signal, code) {
+    let r;
     try {
-      res = await client.beta.messages.create({
-        model: API_MODEL,
-        max_tokens: 16000,
-        betas: ['server-side-fallback-2026-07-01'],
-        fallbacks: 'default',
-        output_config: { effort, format: { type: 'json_schema', schema } },
-        messages: [{ role: 'user', content: prompt }],
-      }, { signal });
+      r = await fetch(RELAY_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.assign({ code: code || raw.get(CODE_KEY) }, payload)),
+        signal,
+      });
     } catch (e) {
-      if (signal.aborted || e instanceof Anthropic.APIUserAbortError) throw { code: 'cancelled' };
-      if (e instanceof Anthropic.AuthenticationError || e instanceof Anthropic.PermissionDeniedError) throw { code: 'bad_key' };
-      if (e instanceof Anthropic.RateLimitError) throw { code: 'rate_limited' };
-      if (e instanceof Anthropic.BadRequestError) {
-        const m = String(e.message || '');
-        throw { code: /workspace/i.test(m) ? 'workspace' : /credit/i.test(m) ? 'no_credit' : 'upstream_error' };
-      }
+      if (signal && signal.aborted) throw { code: 'cancelled' };
       throw { code: 'upstream_error' };
     }
-    if (res.stop_reason === 'refusal') throw { code: 'refused' };
-    const out = res.content.filter((b) => b.type === 'text').map((b) => b.text).join('');
-    try { return JSON.parse(out); } catch (e) { throw { code: 'invalid_json' }; }
+    let j = null;
+    try { j = await r.json(); } catch (e) {}
+    if (!r.ok) throw { code: (j && j.error) || 'upstream_error' };
+    return j;
   }
 
-  async function translateWithApi(src, text, signal) {
-    return readTranslation(src, text, await askApi(translatePrompt(src, text), TRANSLATION_SCHEMA, 'low', signal));
+  async function translateWithRelay(src, text, signal) {
+    return readTranslation(src, text, (await askRelay({ kind: 'translate', src, text }, signal)).result);
   }
-  function detailsWithApi(cur, signal) {
-    return askApi(detailsPrompt(cur), DETAILS_SCHEMA, 'medium', signal);
+  async function detailsWithRelay(cur, signal) {
+    const t = { fr: cur.t.fr || '', en: cur.t.en || '', ro: cur.t.ro || '' };
+    return (await askRelay({ kind: 'details', src: cur.src, t }, signal)).result;
   }
 
   async function gt(sl, tl, q, dts, signal, hl) {
@@ -686,14 +654,14 @@ Use correct Romanian diacritics.`;
 
   const ENGINES = {
     claude: { translate: translateWithClaude, details: detailsWithClaude },
-    api: { translate: translateWithApi, details: detailsWithApi },
+    relay: { translate: translateWithRelay, details: detailsWithRelay },
     google: { translate: translateWithGoogle, details: detailsWithGoogle },
   };
-  // If the API key fails (no credit, revoked…), fall back to Google so the page keeps working.
+  // If the relay fails (wrong code, daily limit, no credit…), fall back to Google so the page keeps working.
   async function withEngine(kind, args, signal) {
     await ready;
     try { return await ENGINES[engine][kind](...args, signal); } catch (e) {
-      if (engine !== 'api' || signal.aborted || (e && e.code === 'cancelled')) throw e;
+      if (engine !== 'relay' || signal.aborted || (e && e.code === 'cancelled')) throw e;
       const r = await ENGINES.google[kind](...args, signal);
       setStatus(errorCopy(e) + ' Used Google Translate instead.', true);
       return r;
@@ -717,9 +685,10 @@ Use correct Romanian diacritics.`;
     const c = e && e.code;
     if (c === 'not_granted') return 'Claude needs your OK to translate. Reload the page and tap Allow.';
     if (OFF_CODES.includes(c)) return 'Claude isn’t available on this account, so translation is off here.';
-    if (c === 'bad_key') return 'The Claude API key was refused. Check it under “Claude” at the bottom of the page.';
-    if (c === 'workspace') return 'This API key needs a workspace ID. Add it under “Claude” at the bottom of the page.';
-    if (c === 'no_credit') return 'The Claude API account is out of credit.';
+    if (c === 'bad_code') return 'The family code is wrong. Check it under “Claude” at the bottom of the page.';
+    if (c === 'server_key') return 'Claude isn’t set up on the server yet.';
+    if (c === 'daily_limit') return 'Today’s Claude limit is reached. Back tomorrow.';
+    if (c === 'no_credit') return 'The Claude account is out of credit.';
     if (c === 'blocked') return 'Translation isn’t available in this view. Open the page signed in to Claude.';
     if (c === 'rate_limited') return 'Too many requests right now. Wait a minute, then try again.';
     if (c === 'session_expired') return 'Sign in to Claude again, then try again.';
@@ -1022,19 +991,17 @@ Use correct Romanian diacritics.`;
   function renderEngine() {
     $('#engine').textContent = {
       claude: 'Translations by Claude',
-      api: 'Translations by Claude (API key)',
+      relay: 'Translations by Claude',
       google: 'Translations by Google Translate',
     }[engine];
     const btn = $('#open-settings');
     btn.hidden = inClaude;
-    btn.textContent = engine === 'api' ? 'Settings' : 'Get richer results with Claude';
+    btn.textContent = engine === 'relay' ? 'Settings' : 'Get richer results with Claude';
     $('#example-extra').hidden = inClaude || engine !== 'google';
   }
 
-  function saveKey(key, ws) {
-    raw.set('vega.key', key);
-    raw.set('vega.ws', key ? ws : '');
-    api = null;
+  function useCode(code) {
+    raw.set(CODE_KEY, code);
     engine = pickEngine();
     renderEngine();
     $('#settings').hidden = true;
@@ -1087,15 +1054,29 @@ Use correct Romanian diacritics.`;
     const form = $('#settings');
     form.hidden = !form.hidden;
     if (form.hidden) return;
-    $('#api-key').value = raw.get('vega.key');
-    $('#api-ws').value = raw.get('vega.ws');
+    $('#family-code').value = raw.get(CODE_KEY);
+    $('#settings-msg').hidden = true;
     form.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
   });
-  $('#settings').addEventListener('submit', (e) => {
+  $('#settings').addEventListener('submit', async (e) => {
     e.preventDefault();
-    saveKey($('#api-key').value.trim(), $('#api-ws').value.trim());
+    const code = $('#family-code').value.trim();
+    const msg = $('#settings-msg');
+    if (!code) { useCode(''); return; }
+    const btn = $('#save-code');
+    btn.disabled = true;
+    msg.hidden = true;
+    try {
+      await askRelay({ kind: 'check' }, undefined, code);
+      useCode(code);
+    } catch (err) {
+      msg.textContent = err && err.code === 'bad_code' ? 'This code doesn’t work. Check it and try again.' : errorCopy(err);
+      msg.hidden = false;
+    } finally {
+      btn.disabled = false;
+    }
   });
-  $('#remove-key').addEventListener('click', () => saveKey('', ''));
+  $('#forget-code').addEventListener('click', () => useCode(''));
 
   let clearArmed = 0;
   $('#clear-history').addEventListener('click', (e) => {
