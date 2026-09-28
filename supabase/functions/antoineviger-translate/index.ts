@@ -96,8 +96,14 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch { return reply(req, 400, { error: 'bad_request' }); }
 
   const expected = Deno.env.get('ANTOINEVIGER_TRANSLATE_CODE') ?? '';
-  if (!expected || !sameSecret(str(body?.code), expected)) return reply(req, 401, { error: 'bad_code' });
-  if (body.kind === 'check') return reply(req, 200, { ok: true });
+  if (!expected || !sameSecret(str(body?.code), expected)) {
+    console.log(JSON.stringify({ rejected: 'bad_code', kind: body?.kind }));
+    return reply(req, 401, { error: 'bad_code' });
+  }
+  if (body.kind === 'check') {
+    console.log(JSON.stringify({ kind: 'check', ok: true }));
+    return reply(req, 200, { ok: true });
+  }
 
   const api = anthropic();
   if (!api) return reply(req, 503, { error: 'server_key' });
@@ -106,15 +112,19 @@ Deno.serve(async (req) => {
   const src = body.src;
   if (body.kind === 'translate') {
     const text = str(body.text);
-    if (!CODES.includes(src) || !text || text.length > MAX_TEXT) return reply(req, 400, { error: 'bad_request' });
+    if (!CODES.includes(src) || !text || text.length > MAX_TEXT) {
+      console.log(JSON.stringify({ rejected: 'bad_request', kind: body.kind, src, textLength: text.length }));
+      return reply(req, 400, { error: 'bad_request' });
+    }
     prompt = translatePrompt(src, text);
     schema = TRANSLATION_SCHEMA;
     effort = 'low';
   } else if (body.kind === 'details') {
-    const text = str(body.text);
     const t: Record<string, string> = {};
     for (const l of CODES) t[l] = str(body.t?.[l]);
+    const text = str(body.text) || t[src] || ''; // pages cached before 2026-09-28 19:00 don't send `text`
     if (!CODES.includes(src) || !text || text.length > MAX_TEXT || CODES.some((l) => t[l].length > MAX_TEXT)) {
+      console.log(JSON.stringify({ rejected: 'bad_request', kind: body.kind, src, textLength: text.length }));
       return reply(req, 400, { error: 'bad_request' });
     }
     prompt = detailsPrompt(src, text, t);

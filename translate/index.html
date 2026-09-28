@@ -553,6 +553,10 @@ Use correct Romanian diacritics.`;
     return j;
   }
 
+  // Backup when Google Translate doesn't answer (it sometimes blocks shared mobile-network addresses).
+  async function translateWithRelay(src, text, signal) {
+    return readTranslation(src, text, (await askRelay({ kind: 'translate', src, text }, signal)).result);
+  }
   // Claude also reviews Google's translations and sends back corrected ones with the details.
   async function detailsWithRelay(cur, signal) {
     const t = { fr: cur.t.fr || '', en: cur.t.en || '', ro: cur.t.ro || '' };
@@ -572,9 +576,9 @@ Use correct Romanian diacritics.`;
       });
     } catch (e) {
       if (e && e.name === 'AbortError') throw { code: 'cancelled' };
-      throw { code: inClaude ? 'blocked' : 'upstream_error' };
+      throw { code: inClaude ? 'blocked' : 'google_down' };
     }
-    if (!r.ok) throw { code: r.status === 429 ? 'rate_limited' : 'upstream_error' };
+    if (!r.ok) throw { code: 'google_down' };
     return r.json();
   }
   const joinTrans = (j) => ((j && j.sentences) || []).map((s) => s.trans || '').join('');
@@ -614,19 +618,32 @@ Use correct Romanian diacritics.`;
 
   const ENGINES = {
     claude: { translate: translateWithClaude, details: detailsWithClaude },
-    relay: { details: detailsWithRelay },
+    relay: { translate: translateWithRelay, details: detailsWithRelay },
     google: { translate: translateWithGoogle, details: detailsWithGoogle },
   };
-  // If the relay fails (wrong code, daily limit, no credit…), fall back to Google so the page keeps working.
+  // Each engine backs the other up so the page keeps working: translations try Google then Claude,
+  // "See more" tries Claude then Google.
+  function chainFor(kind) {
+    if (sample) return ['claude'];
+    const relay = !inClaude && !!raw.get(CODE_KEY);
+    if (kind === 'details') return relay ? ['relay', 'google'] : ['google'];
+    return relay ? ['google', 'relay'] : ['google'];
+  }
   async function withEngine(kind, args, signal) {
     await ready;
-    const engine = engineFor(kind);
-    try { return await ENGINES[engine][kind](...args, signal); } catch (e) {
-      if (engine !== 'relay' || signal.aborted || (e && e.code === 'cancelled')) throw e;
-      const r = await ENGINES.google[kind](...args, signal);
-      setStatus(errorCopy(e) + ' Used Google Translate instead.', true);
-      return r;
+    let firstError = null;
+    for (const name of chainFor(kind)) {
+      try {
+        const r = await ENGINES[name][kind](...args, signal);
+        if (firstError && kind === 'details') setStatus(errorCopy(firstError) + ' Used Google Translate instead.', true);
+        if (firstError && kind === 'translate') setStatus('Google Translate didn’t answer, so Claude translated this one.', false, 4000);
+        return r;
+      } catch (e) {
+        if (signal.aborted || (e && e.code === 'cancelled')) throw e;
+        firstError = firstError || e;
+      }
     }
+    throw firstError;
   }
 
   function normalizeDetails(d) {
@@ -646,6 +663,7 @@ Use correct Romanian diacritics.`;
     const c = e && e.code;
     if (c === 'not_granted') return 'Claude needs your OK to translate. Reload the page and tap Allow.';
     if (OFF_CODES.includes(c)) return 'Claude isn’t available on this account, so translation is off here.';
+    if (c === 'google_down') return 'Google Translate didn’t answer. Try again in a moment.';
     if (c === 'bad_code') return 'The family code is wrong. Check it under “Claude” at the bottom of the page.';
     if (c === 'server_key') return 'Claude isn’t set up on the server yet.';
     if (c === 'daily_limit') return 'Today’s Claude limit is reached. Back tomorrow.';
