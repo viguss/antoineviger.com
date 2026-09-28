@@ -1,0 +1,888 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="French, English and Romanian side by side: type in one box, the other two follow.">
+<meta name="theme-color" content="#F3F4F9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1120" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Bridge">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Pont · Bridge · Pod</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap">
+<style>
+  :root {
+    --bg: #F3F4F9;
+    --surface: #FFFFFF;
+    --surface-2: #E9ECF5;
+    --shared: #F0F2FE;
+    --ink: #15192B;
+    --muted: #5A6180;
+    --line: #DADEEA;
+    --accent: #2438B0;
+    --accent-ink: #FFFFFF;
+    --accent-soft: #E2E7FC;
+    --marker: #FFE27A;
+    --marker-ink: #15192B;
+    --tip-bg: #FFF6D1;
+    --tip-ink: #3D3100;
+    --danger: #B3261E;
+    --flag-edge: rgba(21, 25, 43, .14);
+    --shadow-sm: 0 1px 2px rgba(21, 25, 43, .10), 0 2px 8px rgba(21, 25, 43, .06);
+    --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+    --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #0E1120;
+      --surface: #171B2D;
+      --surface-2: #222840;
+      --shared: #1A2042;
+      --ink: #E8EAF4;
+      --muted: #9CA2BF;
+      --line: #2B3150;
+      --accent: #9AABFF;
+      --accent-ink: #0E1120;
+      --accent-soft: #273062;
+      --marker: #5A480C;
+      --marker-ink: #FFEBA8;
+      --tip-bg: #2C2711;
+      --tip-ink: #F4E3A1;
+      --danger: #FF8F86;
+      --flag-edge: rgba(255, 255, 255, .16);
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0E1120;
+    --surface: #171B2D;
+    --surface-2: #222840;
+    --shared: #1A2042;
+    --ink: #E8EAF4;
+    --muted: #9CA2BF;
+    --line: #2B3150;
+    --accent: #9AABFF;
+    --accent-ink: #0E1120;
+    --accent-soft: #273062;
+    --marker: #5A480C;
+    --marker-ink: #FFEBA8;
+    --tip-bg: #2C2711;
+    --tip-ink: #F4E3A1;
+    --danger: #FF8F86;
+    --flag-edge: rgba(255, 255, 255, .16);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); }
+  body {
+    margin: 0;
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.45;
+    padding-inline: 16px;
+    padding-block: 18px 56px;
+    -webkit-text-size-adjust: 100%;
+  }
+  button { font: inherit; color: inherit; }
+  button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .app { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+
+  /* Header */
+  .top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 16px; }
+  .wordmark {
+    margin: 0;
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 28px;
+    line-height: 1.1;
+    letter-spacing: -.02em;
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: .25em;
+  }
+  .wordmark .w { text-decoration: underline; text-decoration-thickness: 4px; text-underline-offset: 6px; }
+  .wordmark .w-fr { text-decoration-color: #0055A4; }
+  .wordmark .w-en { text-decoration-color: #C8102E; }
+  .wordmark .w-ro { text-decoration-color: #FCD116; }
+  .wordmark .sep { color: var(--muted); font-weight: 600; }
+  .tag { margin: 8px 0 0; color: var(--muted); font-size: 14px; }
+
+  .me { display: flex; align-items: center; gap: 8px; }
+  .me-label { font-size: 12px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+  .seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--surface-2); }
+  .seg button {
+    appearance: none; border: 0; background: transparent; cursor: pointer;
+    color: var(--muted); font-size: 14px; font-weight: 700;
+    min-height: 36px; padding: 6px 12px; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .seg button[aria-checked="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
+
+  /* Flags */
+  .flag { flex: none; display: inline-block; width: 27px; height: 18px; border-radius: 4px; overflow: hidden; box-shadow: 0 0 0 1px var(--flag-edge); }
+  .flag svg { display: block; width: 100%; height: 100%; }
+  .flag.sm { width: 18px; height: 12px; border-radius: 3px; }
+
+  /* Language blocks */
+  .blocks { display: flex; flex-direction: column; gap: 10px; }
+  .block {
+    position: relative; overflow: hidden;
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 8px 10px 14px 14px;
+    background: var(--surface);
+    border: 1.5px solid var(--line);
+    border-radius: 16px;
+    transition: border-color .15s ease;
+  }
+  .block.is-shared { background: var(--shared); }
+  .block.is-source, .block:focus-within { border-color: var(--accent); }
+  .head { display: flex; align-items: center; gap: 10px; min-height: 40px; }
+  .lang { font-weight: 700; font-size: 15px; }
+  .shared-tag {
+    font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--accent); background: var(--accent-soft); padding: 2px 8px; border-radius: 999px;
+  }
+  .tools { margin-left: auto; display: flex; gap: 2px; }
+  .icon {
+    appearance: none; border: 0; background: transparent; cursor: pointer;
+    width: 40px; height: 40px; border-radius: 10px; color: var(--muted);
+    display: grid; place-items: center;
+  }
+  .icon:hover { background: var(--surface-2); color: var(--ink); }
+  .icon svg { width: 20px; height: 20px; }
+  textarea {
+    display: block; width: 100%; min-height: 1.3em;
+    margin: 0; padding: 0 4px 0 0; border: 0; outline: none; resize: none; overflow: hidden;
+    background: transparent; color: var(--ink);
+    font-family: var(--body); font-size: 22px; line-height: 1.3;
+    transition: opacity .15s ease;
+  }
+  textarea::placeholder { color: var(--muted); opacity: .55; }
+  .block.is-stale textarea { opacity: .4; }
+  .sense { margin: 0; padding-right: 4px; color: var(--muted); font-size: 15px; font-style: italic; }
+
+  .alts { margin-top: 4px; padding-top: 10px; border-top: 1px dashed var(--line); display: flex; flex-direction: column; gap: 8px; }
+  .label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .alts ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  .alt {
+    appearance: none; cursor: pointer; text-align: left; max-width: 100%;
+    display: flex; flex-direction: column; gap: 1px;
+    padding: 6px 10px; border-radius: 10px;
+    background: var(--surface); border: 1px solid var(--line);
+  }
+  .block.is-shared .alt { background: var(--bg); }
+  .alt:hover { border-color: var(--accent); }
+  .alt b { font-size: 15px; }
+  .alt span { font-size: 12.5px; color: var(--muted); }
+
+  .bar {
+    position: absolute; top: 0; left: 0; right: 0; height: 3px; opacity: 0;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent) no-repeat;
+    background-size: 50% 100%;
+  }
+  .block.is-loading .bar { opacity: 1; animation: sweep 1.1s linear infinite; }
+  @keyframes sweep { from { background-position: -50% 0; } to { background-position: 150% 0; } }
+
+  /* Actions, notes, tip */
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; min-height: 44px; }
+  .btn {
+    appearance: none; border: 0; cursor: pointer;
+    min-height: 44px; padding: 10px 16px; border-radius: 12px;
+    background: var(--accent); color: var(--accent-ink);
+    font-size: 15px; font-weight: 700;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn:disabled { opacity: .55; cursor: default; }
+  .btn svg { width: 18px; height: 18px; }
+  .status { font-size: 14px; color: var(--muted); }
+  .status.is-error { color: var(--danger); }
+  .note { margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); color: var(--muted); font-size: 14px; }
+  .note b { color: var(--ink); }
+  .tip { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 14px; background: var(--tip-bg); color: var(--tip-ink); font-size: 15px; }
+  .tip .label { color: inherit; opacity: .8; }
+
+  /* Context */
+  h2 { margin: 0 0 10px; font-family: var(--display); font-weight: 700; font-size: 19px; letter-spacing: -.01em; }
+  .examples { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .example { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .ex-line {
+    appearance: none; border: 0; background: transparent; width: 100%; text-align: left;
+    display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; font-size: 16px;
+  }
+  button.ex-line { cursor: pointer; }
+  .ex-line + .ex-line { border-top: 1px solid var(--line); }
+  .ex-line.is-en { background: var(--shared); }
+  .ex-line .flag { margin-top: 5px; }
+  .ex-line .txt { flex: 1; min-width: 0; }
+  .ex-line .spk { flex: none; width: 18px; height: 18px; margin-top: 3px; color: var(--muted); }
+  mark { background: var(--marker); color: var(--marker-ink); border-radius: 3px; padding: 0 2px; }
+
+  /* Recent */
+  .recent-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .link { appearance: none; border: 0; background: none; cursor: pointer; padding: 8px 0 8px 8px; color: var(--muted); font-size: 14px; text-decoration: underline; text-underline-offset: 3px; }
+  .recent-list { list-style: none; margin: 0; padding: 0; }
+  .recent-item {
+    appearance: none; border: 0; background: none; cursor: pointer; width: 100%; text-align: left;
+    display: flex; align-items: center; gap: 12px; padding: 10px 2px;
+    border-bottom: 1px solid var(--line);
+  }
+  .recent-list li:first-child .recent-item { border-top: 1px solid var(--line); }
+  .rt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .rt b { font-size: 16px; overflow-wrap: anywhere; }
+  .rt .tr { font-size: 14px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .engine { margin: 8px 0 0; text-align: center; font-size: 12.5px; color: var(--muted); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .block, textarea { transition: none; }
+    .block.is-loading .bar { animation: none; background: var(--accent); opacity: .5; }
+  }
+</style>
+<style>
+  :root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  [hidden] { display: none !important; }
+  img { max-width: 100%; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="flag-fr" viewBox="0 0 3 2" preserveAspectRatio="none">
+    <rect width="1" height="2" fill="#0055A4"/><rect x="1" width="1" height="2" fill="#FFFFFF"/><rect x="2" width="1" height="2" fill="#EF4135"/>
+  </symbol>
+  <symbol id="flag-ro" viewBox="0 0 3 2" preserveAspectRatio="none">
+    <rect width="1" height="2" fill="#002B7F"/><rect x="1" width="1" height="2" fill="#FCD116"/><rect x="2" width="1" height="2" fill="#CE1126"/>
+  </symbol>
+  <symbol id="flag-en" viewBox="0 0 60 30" preserveAspectRatio="xMidYMid slice">
+    <rect width="60" height="30" fill="#012169"/>
+    <path d="M0,0 L60,30 M60,0 L0,30" stroke="#FFFFFF" stroke-width="6"/>
+    <path d="M0,0 L60,30 M60,0 L0,30" stroke="#C8102E" stroke-width="2"/>
+    <path d="M30,0 V30 M0,15 H60" stroke="#FFFFFF" stroke-width="10"/>
+    <path d="M30,0 V30 M0,15 H60" stroke="#C8102E" stroke-width="6"/>
+  </symbol>
+  <symbol id="i-speak" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/>
+    </g>
+  </symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>
+    </g>
+  </symbol>
+  <symbol id="i-clear" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></g>
+  </symbol>
+  <symbol id="i-lens" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></g>
+  </symbol>
+</svg>
+
+<main class="app">
+  <header class="top">
+    <div>
+      <h1 class="wordmark">
+        <span class="w w-fr" lang="fr">Pont</span><span class="sep">·</span><span class="w w-en">Bridge</span><span class="sep">·</span><span class="w w-ro" lang="ro">Pod</span>
+      </h1>
+      <p class="tag">Type in any box. The other two follow.</p>
+    </div>
+    <div class="me">
+      <span class="me-label" id="me-label">I'm</span>
+      <div class="seg" role="radiogroup" aria-labelledby="me-label">
+        <button type="button" role="radio" aria-checked="true" data-me="antoine" id="me-antoine">
+          <span class="flag sm"><svg><use href="#flag-fr"/></svg></span>Antoine
+        </button>
+        <button type="button" role="radio" aria-checked="false" data-me="bianca" id="me-bianca">
+          <span class="flag sm"><svg><use href="#flag-ro"/></svg></span>Bianca
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="blocks" id="blocks">
+    <section class="block" id="block-fr" data-lang="fr">
+      <div class="bar"></div>
+      <div class="head">
+        <span class="flag"><svg><use href="#flag-fr"/></svg></span>
+        <label class="lang" for="in-fr" lang="fr">Français</label>
+        <div class="tools">
+          <button type="button" class="icon speak needs-text" id="speak-fr" aria-label="Listen in French"><svg><use href="#i-speak"/></svg></button>
+          <button type="button" class="icon copy needs-text" id="copy-fr" aria-label="Copy the French"><svg><use href="#i-copy"/></svg></button>
+          <button type="button" class="icon clear needs-text" id="clear-fr" aria-label="Clear all boxes"><svg><use href="#i-clear"/></svg></button>
+        </div>
+      </div>
+      <textarea id="in-fr" rows="1" lang="fr" autocomplete="off" autocapitalize="off" enterkeyhint="go"></textarea>
+      <p class="sense" lang="fr" hidden></p>
+      <div class="alts" hidden><span class="label">Autres mots</span><ul lang="fr"></ul></div>
+    </section>
+
+    <section class="block is-shared" id="block-en" data-lang="en">
+      <div class="bar"></div>
+      <div class="head">
+        <span class="flag"><svg><use href="#flag-en"/></svg></span>
+        <label class="lang" for="in-en">English</label>
+        <span class="shared-tag">shared</span>
+        <div class="tools">
+          <button type="button" class="icon speak needs-text" id="speak-en" aria-label="Listen in English"><svg><use href="#i-speak"/></svg></button>
+          <button type="button" class="icon copy needs-text" id="copy-en" aria-label="Copy the English"><svg><use href="#i-copy"/></svg></button>
+          <button type="button" class="icon clear needs-text" id="clear-en" aria-label="Clear all boxes"><svg><use href="#i-clear"/></svg></button>
+        </div>
+      </div>
+      <textarea id="in-en" rows="1" lang="en" autocomplete="off" autocapitalize="off" enterkeyhint="go"></textarea>
+      <p class="sense" lang="en" hidden></p>
+      <div class="alts" hidden><span class="label">Other words</span><ul lang="en"></ul></div>
+    </section>
+
+    <section class="block" id="block-ro" data-lang="ro">
+      <div class="bar"></div>
+      <div class="head">
+        <span class="flag"><svg><use href="#flag-ro"/></svg></span>
+        <label class="lang" for="in-ro" lang="ro">Română</label>
+        <div class="tools">
+          <button type="button" class="icon speak needs-text" id="speak-ro" aria-label="Listen in Romanian"><svg><use href="#i-speak"/></svg></button>
+          <button type="button" class="icon copy needs-text" id="copy-ro" aria-label="Copy the Romanian"><svg><use href="#i-copy"/></svg></button>
+          <button type="button" class="icon clear needs-text" id="clear-ro" aria-label="Clear all boxes"><svg><use href="#i-clear"/></svg></button>
+        </div>
+      </div>
+      <textarea id="in-ro" rows="1" lang="ro" autocomplete="off" autocapitalize="off" enterkeyhint="go"></textarea>
+      <p class="sense" lang="ro" hidden></p>
+      <div class="alts" hidden><span class="label">Alte cuvinte</span><ul lang="ro"></ul></div>
+    </section>
+  </div>
+
+  <div class="actions">
+    <button type="button" class="btn" id="more" hidden><svg><use href="#i-lens"/></svg><span id="more-label">Meaning &amp; examples</span></button>
+    <span class="status" id="status" role="status" aria-live="polite"></span>
+  </div>
+
+  <p class="note" id="example-note" hidden><b>Example:</b> “dor” is how Romanians say they miss someone. Type in any box to start.</p>
+
+  <aside class="tip" id="tip" hidden><span class="label">Watch out</span><span id="tip-text"></span></aside>
+
+  <section id="context" hidden>
+    <h2>In context</h2>
+    <ol class="examples" id="examples"></ol>
+  </section>
+
+  <section id="recent" hidden>
+    <div class="recent-head">
+      <h2>Recent</h2>
+      <button type="button" class="link" id="clear-history">Clear</button>
+    </div>
+    <ul class="recent-list" id="recent-list"></ul>
+  </section>
+
+  <p class="engine" id="engine"></p>
+</main>
+
+<script>
+(() => {
+  const LANGS = {
+    fr: { name: 'French', speech: 'fr-FR', ph: 'Écris ici en français…' },
+    en: { name: 'English', speech: 'en-GB', ph: 'Type here in English…' },
+    ro: { name: 'Romanian', speech: 'ro-RO', ph: 'Scrie aici în română…' },
+  };
+  const CODES = ['fr', 'en', 'ro'];
+  const ORDER = { antoine: ['fr', 'en', 'ro'], bianca: ['ro', 'en', 'fr'] };
+  const OFF_CODES = ['not_granted', 'sampling_disabled', 'not_declared', 'capability_disabled', 'capability_removed'];
+
+  const EXAMPLE = {
+    example: true, src: 'ro', text: 'dor',
+    t: { fr: 'le manque', en: 'longing', ro: 'dor' },
+    d: {
+      sense: {
+        fr: 'Le fait que quelqu’un ou quelque chose qu’on aime nous manque, avec de la nostalgie.',
+        en: 'The deep feeling of missing someone or something you love.',
+        ro: 'Sentimentul că îți lipsește cineva sau ceva drag.',
+      },
+      alternatives: {
+        fr: [
+          { word: 'la nostalgie', nuance: 'plutôt tournée vers le passé' },
+          { word: 'le mal du pays', nuance: 'le manque de son pays' },
+          { word: 'le désir', nuance: 'plus fort, envie d’avoir' },
+        ],
+        en: [
+          { word: 'to miss', nuance: 'the everyday verb: “I miss you”' },
+          { word: 'yearning', nuance: 'stronger, more poetic' },
+          { word: 'homesickness', nuance: 'missing your home or country' },
+        ],
+        ro: [
+          { word: 'nostalgie', nuance: 'mai mult despre trecut' },
+          { word: 'alean', nuance: 'poetic, din folclor' },
+          { word: 'a tânji', nuance: 'verb: a dori ceva intens' },
+        ],
+      },
+      examples: [
+        { ro: 'Mi-e **dor** de tine.', fr: 'Tu me **manques**.', en: 'I **miss** you.' },
+        { ro: 'Mi-e **dor** de casă.', fr: 'La maison me **manque**.', en: 'I **miss** home.' },
+        { ro: 'Mi-e tare **dor** de mare.', fr: 'La mer me **manque** beaucoup.', en: 'I really **miss** the sea.' },
+      ],
+      tip: 'English has no noun that matches “dor”: use the verb “to miss”. French flips it: “I miss you” = “Tu me manques”.',
+    },
+  };
+
+  const $ = (s) => document.querySelector(s);
+  const blockEl = (l) => document.getElementById('block-' + l);
+  const ta = (l) => document.getElementById('in-' + l);
+  const others = (l) => CODES.filter((c) => c !== l);
+  const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const canSpeak = 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined';
+
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+  };
+
+  let me = ORDER[store.get('pbp.me', 'antoine')] ? store.get('pbp.me', 'antoine') : 'antoine';
+  let hist = store.get('pbp.history', []);
+  if (!Array.isArray(hist)) hist = [];
+  let current = null;
+  let typeTimer = 0, ctl = null, reqId = 0, detailsCtl = null, statusTimer = 0;
+
+  /* ---------- engine: Claude inside the Claude viewer, Google Translate elsewhere ---------- */
+  const inClaude = !!(window.claude && typeof window.claude.use === 'function');
+  let sample = null, engine = 'google';
+  const ready = (async () => {
+    if (inClaude) { try { sample = await window.claude.use('sample'); } catch (e) { sample = null; } }
+    engine = sample ? 'claude' : 'google';
+    $('#engine').textContent = engine === 'claude' ? 'Translations by Claude' : 'Translations by Google Translate';
+  })();
+
+  const str = (v) => (typeof v === 'string' ? v.trim() : '');
+
+  async function translateWithClaude(src, text, signal) {
+    const prompt =
+`You are the translation helper of a couple learning English together: Antoine speaks French, Bianca speaks Romanian.
+Text typed in the ${LANGS[src].name} box:
+"""
+${text}
+"""
+Give it in French, English and Romanian. Keep the meaning, tone and register. For a single word, give the most natural everyday equivalent (verbs in the infinitive, e.g. "to miss"). Use correct Romanian diacritics (ă â î ș ț).
+If the text is clearly written in one of the other two languages rather than ${LANGS[src].name}, set "detected" to that language's code and translate from it.
+Reply with only JSON: {"detected":"fr|en|ro","fr":"…","en":"…","ro":"…"}`;
+    const j = await sample.json(prompt, { modelTier: 'quick', signal });
+    const det = CODES.includes(j && j.detected) ? j.detected : src;
+    const t = { fr: str(j && j.fr), en: str(j && j.en), ro: str(j && j.ro) };
+    t[det] = text;
+    if (!others(det).some((l) => t[l])) throw { code: 'empty_completion' };
+    return { src: det, t };
+  }
+
+  async function detailsWithClaude(cur, signal) {
+    const prompt =
+`You help two people learning English (one native French speaker, one native Romanian speaker) understand exactly what a word or phrase means.
+French: "${cur.t.fr}"
+English: "${cur.t.en}"
+Romanian: "${cur.t.ro}"
+(first typed in ${LANGS[cur.src].name})
+
+Reply with only JSON in this shape:
+{"sense":{"fr":"…","en":"…","ro":"…"},
+ "alternatives":{"fr":[{"word":"…","nuance":"…"}],"en":[{"word":"…","nuance":"…"}],"ro":[{"word":"…","nuance":"…"}]},
+ "examples":[{"fr":"…","en":"…","ro":"…"}],
+ "tip":"…"}
+Rules:
+- sense: one short sentence per language, written in that language, explaining what it means. Use simple English for "en".
+- alternatives: 2 to 4 per language, written in that language: synonyms or close words. Each nuance is at most 8 words, in the same language, saying how it differs (more formal, stronger, slang, only for places…). If the text is a whole sentence, give other natural ways to say it.
+- examples: 3 short everyday sentences that say the same thing in the three languages. In each sentence, wrap the word (or its equivalent) in **double asterisks**.
+- tip: one short sentence in simple English about a trap for French or Romanian speakers (false friend, word order, common mistake), or "" if there is none.
+Use correct Romanian diacritics.`;
+    return sample.json(prompt, { modelTier: 'quick', signal });
+  }
+
+  async function gt(sl, tl, q, dts, signal, hl) {
+    const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&dj=1&sl=' + sl + '&tl=' + tl +
+      '&hl=' + (hl || tl) + dts.map((d) => '&dt=' + d).join('');
+    let r;
+    try {
+      r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+        body: 'q=' + encodeURIComponent(q),
+        signal,
+      });
+    } catch (e) {
+      if (e && e.name === 'AbortError') throw { code: 'cancelled' };
+      throw { code: inClaude ? 'blocked' : 'upstream_error' };
+    }
+    if (!r.ok) throw { code: r.status === 429 ? 'rate_limited' : 'upstream_error' };
+    return r.json();
+  }
+  const joinTrans = (j) => ((j && j.sentences) || []).map((s) => s.trans || '').join('');
+
+  async function translateWithGoogle(src, text, signal) {
+    const tls = others(src);
+    const rs = await Promise.all(tls.map((tl) => gt(src, tl, text, ['t', 'bd'], signal)));
+    const t = { [src]: text }, g = {};
+    tls.forEach((tl, i) => { t[tl] = joinTrans(rs[i]).trim(); if (rs[i].dict) g[tl] = rs[i].dict; });
+    return { src, t, g };
+  }
+
+  async function detailsWithGoogle(cur, signal) {
+    const d = { sense: {}, alternatives: {}, examples: [], tip: '' };
+    for (const [l, dict] of Object.entries(cur.g || {})) {
+      d.alternatives[l] = dict.flatMap((p) => (p.terms || []).slice(0, 2).map((w) => ({ word: w, nuance: p.pos || '' })));
+    }
+    if (!cur.t.en) return d;
+    const r = await gt('en', 'fr', cur.t.en, ['md', 'ex', 'ss'], signal, 'en');
+    const gloss = r.definitions && r.definitions[0] && r.definitions[0].entry && r.definitions[0].entry[0];
+    if (gloss && gloss.gloss) d.sense.en = gloss.gloss;
+    if (cur.src === 'en') {
+      d.alternatives.en = (r.synsets || []).flatMap((s) => (s.entry || []).flatMap((e) => e.synonym || [])).map((w) => ({ word: w, nuance: '' }));
+    }
+    const ex = ((r.examples && r.examples.example) || []).slice(0, 3)
+      .map((e) => String(e.text || '').replace(/<\/?b>/g, '**').replace(/<[^>]+>/g, ''));
+    if (ex.length) {
+      const plain = ex.map((s) => s.replace(/\*\*/g, '')).join('\n');
+      const [fr, ro] = await Promise.all(['fr', 'ro'].map((tl) =>
+        gt('en', tl, plain, ['t'], signal).then((j) => joinTrans(j).split('\n'))));
+      d.examples = ex.map((s, i) => ({ en: s, fr: str(fr[i]), ro: str(ro[i]) }));
+    }
+    return d;
+  }
+
+  function normalizeDetails(d) {
+    const out = { sense: {}, alternatives: {}, examples: [], tip: str(d && d.tip) };
+    for (const l of CODES) {
+      out.sense[l] = str(d && d.sense && d.sense[l]);
+      const list = d && d.alternatives && Array.isArray(d.alternatives[l]) ? d.alternatives[l] : [];
+      out.alternatives[l] = list.map((a) => ({ word: str(a && a.word), nuance: str(a && a.nuance) })).filter((a) => a.word).slice(0, 4);
+    }
+    const ex = d && Array.isArray(d.examples) ? d.examples : [];
+    out.examples = ex.map((x) => ({ fr: str(x && x.fr), en: str(x && x.en), ro: str(x && x.ro) }))
+      .filter((x) => x.fr || x.en || x.ro).slice(0, 3);
+    return out;
+  }
+
+  function errorCopy(e) {
+    const c = e && e.code;
+    if (c === 'not_granted') return 'Claude needs your OK to translate. Reload the page and tap Allow.';
+    if (OFF_CODES.includes(c)) return 'Claude isn’t available on this account, so translation is off here.';
+    if (c === 'blocked') return 'Translation isn’t available in this view. Open the page signed in to Claude.';
+    if (c === 'rate_limited') return 'Too many requests right now. Wait a minute, then try again.';
+    if (c === 'session_expired') return 'Sign in to Claude again, then try again.';
+    if (c === 'refused' || c === 'empty_completion' || c === 'invalid_json') return 'Couldn’t translate that. Try rewording it.';
+    return 'Translation failed. Check your connection and try again.';
+  }
+
+  /* ---------- rendering ---------- */
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const marked = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<mark>$1</mark>').replace(/\*\*/g, '');
+  const flagHTML = (l, size) => '<span class="flag' + (size ? ' ' + size : '') + '" aria-hidden="true"><svg><use href="#flag-' + l + '"/></svg></span>';
+
+  function autosize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+
+  function setValue(l, v) { ta(l).value = v; autosize(ta(l)); }
+
+  function updateTools() {
+    for (const l of CODES) {
+      const has = !!ta(l).value.trim();
+      blockEl(l).querySelectorAll('.needs-text').forEach((b) => { b.hidden = !has || (b.classList.contains('speak') && !canSpeak); });
+    }
+  }
+
+  function markSource(src) { for (const l of CODES) blockEl(l).classList.toggle('is-source', l === src); }
+
+  function setLoading(src, on) {
+    for (const l of CODES) {
+      blockEl(l).classList.toggle('is-loading', on && l !== src);
+      if (!on) blockEl(l).classList.remove('is-stale');
+    }
+  }
+
+  function setStatus(msg, isError, ttl) {
+    clearTimeout(statusTimer);
+    const el = $('#status');
+    el.textContent = msg || '';
+    el.classList.toggle('is-error', !!isError);
+    if (ttl) statusTimer = setTimeout(() => { el.textContent = ''; }, ttl);
+  }
+
+  function syncControls() {
+    const more = $('#more');
+    const has = !!(current && current.t && others(current.src).some((l) => current.t[l]));
+    more.hidden = !has || !!current.d;
+    more.disabled = false;
+    $('#more-label').textContent = 'Meaning & examples';
+    $('#example-note').hidden = !(current && current.example);
+    updateTools();
+  }
+
+  function renderDetails(d) {
+    for (const l of CODES) {
+      const b = blockEl(l);
+      const sense = b.querySelector('.sense');
+      const alts = b.querySelector('.alts');
+      const sv = d && d.sense[l];
+      sense.textContent = sv || '';
+      sense.hidden = !sv;
+      const list = d ? d.alternatives[l] : [];
+      alts.querySelector('ul').replaceChildren(...list.map((a) => {
+        const li = document.createElement('li');
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'alt';
+        btn.innerHTML = '<b>' + esc(a.word) + '</b>' + (a.nuance ? '<span>' + esc(a.nuance) + '</span>' : '');
+        btn.addEventListener('click', () => lookUp(l, a.word));
+        li.append(btn);
+        return li;
+      }));
+      alts.hidden = !list.length;
+    }
+    $('#tip-text').textContent = (d && d.tip) || '';
+    $('#tip').hidden = !(d && d.tip);
+    const examples = d ? d.examples : [];
+    $('#examples').replaceChildren(...examples.map(renderExample));
+    $('#context').hidden = !examples.length;
+  }
+
+  function renderExample(x) {
+    const li = document.createElement('li');
+    li.className = 'example';
+    for (const l of ORDER[me]) {
+      if (!x[l]) continue;
+      const line = document.createElement(canSpeak ? 'button' : 'div');
+      if (canSpeak) { line.type = 'button'; line.addEventListener('click', () => speak(l, x[l].replace(/\*\*/g, ''))); }
+      line.className = 'ex-line' + (l === 'en' ? ' is-en' : '');
+      line.lang = l;
+      line.innerHTML = flagHTML(l, 'sm') + '<span class="txt">' + marked(x[l]) + '</span>' +
+        (canSpeak ? '<svg class="spk" aria-hidden="true"><use href="#i-speak"/></svg>' : '');
+      li.append(line);
+    }
+    return li;
+  }
+
+  function renderHistory() {
+    $('#recent-list').replaceChildren(...hist.map((h) => {
+      const li = document.createElement('li');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'recent-item';
+      const tr = ORDER[me].filter((l) => l !== h.src && h.t && h.t[l]).map((l) => h.t[l]).join(' · ');
+      btn.innerHTML = flagHTML(h.src, 'sm') + '<span class="rt"><b lang="' + h.src + '">' + esc(h.text) + '</b><span class="tr">' + esc(tr) + '</span></span>';
+      btn.addEventListener('click', () => loadEntry(h, true));
+      li.append(btn);
+      return li;
+    }));
+    $('#recent').hidden = !hist.length;
+  }
+
+  function remember(e) {
+    if (e.example) return;
+    const key = (x) => x.src + '|' + x.text.toLowerCase();
+    hist = hist.filter((h) => key(h) !== key(e));
+    hist.unshift({ src: e.src, text: e.text, t: e.t, d: e.d || null, g: e.g || null, at: Date.now() });
+    hist = hist.slice(0, 40);
+    store.set('pbp.history', hist);
+    renderHistory();
+  }
+
+  /* ---------- actions ---------- */
+  function stopAll() {
+    clearTimeout(typeTimer);
+    if (ctl) { ctl.abort(); ctl = null; }
+    if (detailsCtl) { detailsCtl.abort(); detailsCtl = null; }
+    reqId++;
+  }
+
+  async function runTranslate(src, text) {
+    clearTimeout(typeTimer);
+    if (ctl) ctl.abort();
+    const id = ++reqId;
+    ctl = new AbortController();
+    const signal = ctl.signal;
+    setLoading(src, true);
+    setStatus('');
+    try {
+      await ready;
+      const res = engine === 'claude'
+        ? await translateWithClaude(src, text, signal)
+        : await translateWithGoogle(src, text, signal);
+      if (id !== reqId) return;
+      const s = res.src;
+      if (s !== src) {
+        if (ta(src).value.trim() !== text) return;
+        setValue(src, '');
+        setValue(s, text);
+      }
+      for (const l of others(s)) setValue(l, res.t[l] || '');
+      markSource(s);
+      current = { src: s, text, t: Object.assign({}, res.t, { [s]: text }), d: null, g: res.g || null };
+      remember(current);
+      renderDetails(null);
+      syncControls();
+    } catch (e) {
+      if (id !== reqId || signal.aborted || (e && e.code === 'cancelled')) return;
+      setStatus(errorCopy(e), true);
+    } finally {
+      if (id === reqId) setLoading(src, false);
+    }
+  }
+
+  function onType(l) {
+    const text = ta(l).value;
+    autosize(ta(l));
+    stopAll();
+    markSource(l);
+    current = null;
+    renderDetails(null);
+    syncControls();
+    setLoading(l, false);
+    setStatus('');
+    if (!text.trim()) { for (const o of others(l)) setValue(o, ''); updateTools(); return; }
+    for (const o of others(l)) blockEl(o).classList.add('is-stale');
+    typeTimer = setTimeout(() => runTranslate(l, text.trim()), 800);
+  }
+
+  function lookUp(l, word) {
+    setValue(l, word);
+    onType(l);
+    runTranslate(l, word);
+  }
+
+  function loadEntry(e, scroll) {
+    stopAll();
+    current = e;
+    for (const l of CODES) setValue(l, (e.t && e.t[l]) || '');
+    markSource(e.src);
+    setLoading(e.src, false);
+    setStatus('');
+    renderDetails(e.d ? normalizeDetails(e.d) : null);
+    syncControls();
+    if (scroll) window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+  }
+
+  async function loadDetails() {
+    if (!current || current.d) return;
+    const cur = current;
+    if (detailsCtl) detailsCtl.abort();
+    detailsCtl = new AbortController();
+    const signal = detailsCtl.signal;
+    const more = $('#more');
+    more.disabled = true;
+    $('#more-label').textContent = 'Looking closer…';
+    setStatus('');
+    try {
+      await ready;
+      const d = engine === 'claude' ? await detailsWithClaude(cur, signal) : await detailsWithGoogle(cur, signal);
+      if (current !== cur) return;
+      cur.d = normalizeDetails(d);
+      remember(cur);
+      renderDetails(cur.d);
+    } catch (e) {
+      if (signal.aborted || current !== cur || (e && e.code === 'cancelled')) return;
+      setStatus(errorCopy(e), true);
+    } finally {
+      if (current === cur) syncControls();
+    }
+  }
+
+  function speak(l, text) {
+    if (!canSpeak || !text) return;
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = LANGS[l].speech;
+      const voices = speechSynthesis.getVoices();
+      const v = voices.find((v) => (v.lang || '').replace('_', '-').toLowerCase() === LANGS[l].speech.toLowerCase())
+        || voices.find((v) => (v.lang || '').toLowerCase().startsWith(l));
+      if (v) u.voice = v;
+      else if (voices.length) setStatus('No ' + LANGS[l].name + ' voice on this device.', false, 2500);
+      u.rate = 0.92;
+      speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+
+  function copyText(l) {
+    const v = ta(l).value;
+    if (!v) return;
+    let p;
+    try { p = navigator.clipboard.writeText(v); } catch (e) { p = Promise.reject(e); }
+    p.then(() => setStatus('Copied', false, 1800), () => {
+      ta(l).focus();
+      ta(l).select();
+      setStatus('Selected. Copy it from the menu.', false, 2500);
+    });
+  }
+
+  function clearAll(l) {
+    stopAll();
+    current = null;
+    for (const c of CODES) setValue(c, '');
+    markSource(null);
+    setLoading(null, false);
+    renderDetails(null);
+    syncControls();
+    setStatus('');
+    ta(l).focus();
+  }
+
+  function applyMe() {
+    const wrap = $('#blocks');
+    for (const l of ORDER[me]) wrap.append(blockEl(l));
+    document.querySelectorAll('[data-me]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.me === me)));
+    if (current && current.d) renderDetails(normalizeDetails(current.d));
+    renderHistory();
+  }
+
+  /* ---------- wiring ---------- */
+  for (const l of CODES) {
+    const el = ta(l);
+    el.placeholder = LANGS[l].ph;
+    el.addEventListener('input', () => onType(l));
+    el.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
+      e.preventDefault();
+      const text = el.value.trim();
+      if (!text) return;
+      el.blur();
+      if (current && current.src === l && current.text === text) return;
+      runTranslate(l, text);
+    });
+    document.getElementById('speak-' + l).addEventListener('click', () => speak(l, ta(l).value.trim()));
+    document.getElementById('copy-' + l).addEventListener('click', () => copyText(l));
+    document.getElementById('clear-' + l).addEventListener('click', () => clearAll(l));
+  }
+
+  document.querySelectorAll('[data-me]').forEach((b) => b.addEventListener('click', () => {
+    me = b.dataset.me;
+    store.set('pbp.me', me);
+    applyMe();
+  }));
+
+  $('#more').addEventListener('click', loadDetails);
+
+  let clearArmed = 0;
+  $('#clear-history').addEventListener('click', (e) => {
+    const btn = e.currentTarget;
+    if (!clearArmed) {
+      btn.textContent = 'Tap again to clear';
+      clearArmed = setTimeout(() => { clearArmed = 0; btn.textContent = 'Clear'; }, 3000);
+      return;
+    }
+    clearTimeout(clearArmed);
+    clearArmed = 0;
+    btn.textContent = 'Clear';
+    hist = [];
+    store.set('pbp.history', hist);
+    renderHistory();
+  });
+
+  window.addEventListener('resize', () => CODES.forEach((l) => autosize(ta(l))));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => CODES.forEach((l) => autosize(ta(l))));
+
+  applyMe();
+  loadEntry(hist.length ? hist[0] : EXAMPLE, false);
+})();
+</script>
+</body>
+</html>
