@@ -249,7 +249,20 @@
   .rt b { font-size: 16px; overflow-wrap: anywhere; }
   .rt .tr { font-size: 14px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-  .engine { margin: 8px 0 0; text-align: center; font-size: 12.5px; color: var(--muted); }
+  .engine-row { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 0 10px; margin-top: 8px; }
+  .engine { margin: 0; font-size: 12.5px; color: var(--muted); }
+  .engine-row .link { padding: 6px 0; font-size: 12.5px; }
+  .settings { display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1.5px solid var(--line); border-radius: 16px; background: var(--surface); }
+  .settings h2 { margin: 0; }
+  .settings p { margin: 0 0 4px; font-size: 14px; color: var(--muted); }
+  .settings label { font-size: 13px; font-weight: 700; }
+  .settings label span { font-weight: 400; color: var(--muted); }
+  .settings input {
+    width: 100%; min-width: 0; padding: 10px 12px; border-radius: 10px;
+    font: inherit; font-size: 16px; color: var(--ink); background: var(--bg); border: 1px solid var(--line);
+  }
+  .settings input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .settings-actions { display: flex; align-items: center; gap: 14px; margin-top: 6px; }
 
   @media (prefers-reduced-motion: reduce) {
     .block, textarea { transition: none; }
@@ -372,7 +385,7 @@
     <span class="status" id="status" role="status" aria-live="polite"></span>
   </div>
 
-  <p class="note" id="example-note" hidden><b>Example:</b> “dor” is how Romanians say they miss someone. Type in any box to start.</p>
+  <p class="note" id="example-note" hidden><b>Example:</b> “dor” is how Romanians say they miss someone. Type in any box to start.<span id="example-extra" hidden> Results this rich come from Claude: see the bottom of the page.</span></p>
 
   <aside class="tip" id="tip" hidden><span class="label">Watch out</span><span id="tip-text"></span></aside>
 
@@ -389,7 +402,23 @@
     <ul class="recent-list" id="recent-list"></ul>
   </section>
 
-  <p class="engine" id="engine"></p>
+  <div class="engine-row">
+    <p class="engine" id="engine"></p>
+    <button type="button" class="link" id="open-settings" hidden>Get richer results with Claude</button>
+  </div>
+
+  <form class="settings" id="settings" hidden>
+    <h2>Claude</h2>
+    <p>With a Claude API key, translations, meanings and examples come from Claude, like the “dor” example. The key stays in this browser only. On antoineviger.com it is the same key Vega uses.</p>
+    <label for="api-key">API key</label>
+    <input id="api-key" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-…">
+    <label for="api-ws">Workspace ID <span>only if your key needs one</span></label>
+    <input id="api-ws" type="text" autocomplete="off" spellcheck="false" placeholder="wrkspc_…">
+    <div class="settings-actions">
+      <button type="submit" class="btn">Save</button>
+      <button type="button" class="link" id="remove-key">Remove key</button>
+    </div>
+  </form>
 </main>
 
 <script>
@@ -478,19 +507,28 @@
   let askedPersist = false;
   let typeTimer = 0, ctl = null, reqId = 0, detailsCtl = null, statusTimer = 0;
 
-  /* ---------- engine: Claude inside the Claude viewer, Google Translate elsewhere ---------- */
+  /* ---------- engines ----------
+     claude: the viewer's own Claude account, inside the Claude app.
+     api:    a Claude API key saved in this browser (on antoineviger.com, the same key as Vega).
+     google: Google Translate, no account needed. */
   const inClaude = !!(window.claude && typeof window.claude.use === 'function');
-  let sample = null, engine = 'google';
+  const raw = {
+    get(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } },
+    set(k, v) { try { if (v) localStorage.setItem(k, v); else localStorage.removeItem(k); } catch (e) {} },
+  };
+  const API_MODEL = 'claude-opus-5';
+  const SDK_URL = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@0.126.0/+esm';
+  let sample = null, engine = 'google', sdk = null, api = null, apiFor = '';
+  const pickEngine = () => (sample ? 'claude' : !inClaude && raw.get('vega.key') ? 'api' : 'google');
   const ready = (async () => {
     if (inClaude) { try { sample = await window.claude.use('sample'); } catch (e) { sample = null; } }
-    engine = sample ? 'claude' : 'google';
-    $('#engine').textContent = engine === 'claude' ? 'Translations by Claude' : 'Translations by Google Translate';
+    engine = pickEngine();
+    renderEngine();
   })();
 
   const str = (v) => (typeof v === 'string' ? v.trim() : '');
 
-  async function translateWithClaude(src, text, signal) {
-    const prompt =
+  const translatePrompt = (src, text) =>
 `You are the translation helper of a couple learning English together: Antoine speaks French, Bianca speaks Romanian.
 Text typed in the ${LANGS[src].name} box:
 """
@@ -499,16 +537,8 @@ ${text}
 Give it in French, English and Romanian. Keep the meaning, tone and register. For a single word, give the most natural everyday equivalent (verbs in the infinitive, e.g. "to miss"). Use correct Romanian diacritics (ă â î ș ț).
 If the text is clearly written in one of the other two languages rather than ${LANGS[src].name}, set "detected" to that language's code and translate from it.
 Reply with only JSON: {"detected":"fr|en|ro","fr":"…","en":"…","ro":"…"}`;
-    const j = await sample.json(prompt, { modelTier: 'quick', signal });
-    const det = CODES.includes(j && j.detected) ? j.detected : src;
-    const t = { fr: str(j && j.fr), en: str(j && j.en), ro: str(j && j.ro) };
-    t[det] = text;
-    if (!others(det).some((l) => t[l])) throw { code: 'empty_completion' };
-    return { src: det, t };
-  }
 
-  async function detailsWithClaude(cur, signal) {
-    const prompt =
+  const detailsPrompt = (cur) =>
 `You help two people learning English (one native French speaker, one native Romanian speaker) understand exactly what a word or phrase means.
 French: "${cur.t.fr}"
 English: "${cur.t.en}"
@@ -526,7 +556,79 @@ Rules:
 - examples: 3 short everyday sentences that say the same thing in the three languages. In each sentence, wrap the word (or its equivalent) in **double asterisks**.
 - tip: one short sentence in simple English about a trap for French or Romanian speakers (false friend, word order, common mistake), or "" if there is none.
 Use correct Romanian diacritics.`;
-    return sample.json(prompt, { modelTier: 'quick', signal });
+
+  const obj = (props) => ({ type: 'object', properties: props, required: Object.keys(props), additionalProperties: false });
+  const S = { type: 'string' };
+  const ALTS = { type: 'array', items: obj({ word: S, nuance: S }) };
+  const TRANSLATION_SCHEMA = obj({ detected: { type: 'string', enum: CODES }, fr: S, en: S, ro: S });
+  const DETAILS_SCHEMA = obj({
+    sense: obj({ fr: S, en: S, ro: S }),
+    alternatives: obj({ fr: ALTS, en: ALTS, ro: ALTS }),
+    examples: { type: 'array', items: obj({ fr: S, en: S, ro: S }) },
+    tip: S,
+  });
+
+  function readTranslation(src, text, j) {
+    const det = CODES.includes(j && j.detected) ? j.detected : src;
+    const t = { fr: str(j && j.fr), en: str(j && j.en), ro: str(j && j.ro) };
+    t[det] = text;
+    if (!others(det).some((l) => t[l])) throw { code: 'empty_completion' };
+    return { src: det, t };
+  }
+
+  async function translateWithClaude(src, text, signal) {
+    return readTranslation(src, text, await sample.json(translatePrompt(src, text), { modelTier: 'quick', signal }));
+  }
+  function detailsWithClaude(cur, signal) {
+    return sample.json(detailsPrompt(cur), { modelTier: 'quick', signal });
+  }
+
+  async function apiClient() {
+    const key = raw.get('vega.key'), ws = raw.get('vega.ws');
+    if (!key) throw { code: 'bad_key' };
+    if (!sdk) sdk = import(SDK_URL).then((m) => m.default);
+    let Anthropic;
+    try { Anthropic = await sdk; } catch (e) { sdk = null; throw { code: 'upstream_error' }; }
+    if (!api || apiFor !== key + '|' + ws) {
+      // Keys that aren't attached to a workspace need the anthropic-workspace-id header (same as Vega)
+      api = new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true, maxRetries: 1, defaultHeaders: ws ? { 'anthropic-workspace-id': ws } : {} });
+      apiFor = key + '|' + ws;
+    }
+    return { client: api, Anthropic };
+  }
+
+  async function askApi(prompt, schema, effort, signal) {
+    const { client, Anthropic } = await apiClient();
+    let res;
+    try {
+      res = await client.beta.messages.create({
+        model: API_MODEL,
+        max_tokens: 16000,
+        betas: ['server-side-fallback-2026-07-01'],
+        fallbacks: 'default',
+        output_config: { effort, format: { type: 'json_schema', schema } },
+        messages: [{ role: 'user', content: prompt }],
+      }, { signal });
+    } catch (e) {
+      if (signal.aborted || e instanceof Anthropic.APIUserAbortError) throw { code: 'cancelled' };
+      if (e instanceof Anthropic.AuthenticationError || e instanceof Anthropic.PermissionDeniedError) throw { code: 'bad_key' };
+      if (e instanceof Anthropic.RateLimitError) throw { code: 'rate_limited' };
+      if (e instanceof Anthropic.BadRequestError) {
+        const m = String(e.message || '');
+        throw { code: /workspace/i.test(m) ? 'workspace' : /credit/i.test(m) ? 'no_credit' : 'upstream_error' };
+      }
+      throw { code: 'upstream_error' };
+    }
+    if (res.stop_reason === 'refusal') throw { code: 'refused' };
+    const out = res.content.filter((b) => b.type === 'text').map((b) => b.text).join('');
+    try { return JSON.parse(out); } catch (e) { throw { code: 'invalid_json' }; }
+  }
+
+  async function translateWithApi(src, text, signal) {
+    return readTranslation(src, text, await askApi(translatePrompt(src, text), TRANSLATION_SCHEMA, 'low', signal));
+  }
+  function detailsWithApi(cur, signal) {
+    return askApi(detailsPrompt(cur), DETAILS_SCHEMA, 'medium', signal);
   }
 
   async function gt(sl, tl, q, dts, signal, hl) {
@@ -553,9 +655,11 @@ Use correct Romanian diacritics.`;
     const tls = others(src);
     const rs = await Promise.all(tls.map((tl) => gt(src, tl, text, ['t', 'bd'], signal)));
     const t = { [src]: text }, g = {};
-    tls.forEach((tl, i) => { t[tl] = joinTrans(rs[i]).trim(); if (rs[i].dict) g[tl] = rs[i].dict; });
+    tls.forEach((tl, i) => { t[tl] = matchCase(text, joinTrans(rs[i]).trim()); if (rs[i].dict) g[tl] = rs[i].dict; });
     return { src, t, g };
   }
+  const matchCase = (from, out) =>
+    /^\p{Ll}/u.test(from) && /^\p{Lu}/u.test(out) && !/^I\b/.test(out) ? out[0].toLowerCase() + out.slice(1) : out;
 
   async function detailsWithGoogle(cur, signal) {
     const d = { sense: {}, alternatives: {}, examples: [], tip: '' };
@@ -580,6 +684,22 @@ Use correct Romanian diacritics.`;
     return d;
   }
 
+  const ENGINES = {
+    claude: { translate: translateWithClaude, details: detailsWithClaude },
+    api: { translate: translateWithApi, details: detailsWithApi },
+    google: { translate: translateWithGoogle, details: detailsWithGoogle },
+  };
+  // If the API key fails (no credit, revoked…), fall back to Google so the page keeps working.
+  async function withEngine(kind, args, signal) {
+    await ready;
+    try { return await ENGINES[engine][kind](...args, signal); } catch (e) {
+      if (engine !== 'api' || signal.aborted || (e && e.code === 'cancelled')) throw e;
+      const r = await ENGINES.google[kind](...args, signal);
+      setStatus(errorCopy(e) + ' Used Google Translate instead.', true);
+      return r;
+    }
+  }
+
   function normalizeDetails(d) {
     const out = { sense: {}, alternatives: {}, examples: [], tip: str(d && d.tip) };
     for (const l of CODES) {
@@ -597,6 +717,9 @@ Use correct Romanian diacritics.`;
     const c = e && e.code;
     if (c === 'not_granted') return 'Claude needs your OK to translate. Reload the page and tap Allow.';
     if (OFF_CODES.includes(c)) return 'Claude isn’t available on this account, so translation is off here.';
+    if (c === 'bad_key') return 'The Claude API key was refused. Check it under “Claude” at the bottom of the page.';
+    if (c === 'workspace') return 'This API key needs a workspace ID. Add it under “Claude” at the bottom of the page.';
+    if (c === 'no_credit') return 'The Claude API account is out of credit.';
     if (c === 'blocked') return 'Translation isn’t available in this view. Open the page signed in to Claude.';
     if (c === 'rate_limited') return 'Too many requests right now. Wait a minute, then try again.';
     if (c === 'session_expired') return 'Sign in to Claude again, then try again.';
@@ -768,10 +891,7 @@ Use correct Romanian diacritics.`;
     setLoading(src, true);
     setStatus('');
     try {
-      await ready;
-      const res = engine === 'claude'
-        ? await translateWithClaude(src, text, signal)
-        : await translateWithGoogle(src, text, signal);
+      const res = await withEngine('translate', [src, text], signal);
       if (id !== reqId) return;
       const s = res.src;
       if (s !== src) {
@@ -786,6 +906,7 @@ Use correct Romanian diacritics.`;
       saveState();
       renderDetails(null);
       syncControls();
+      if (text.split(/\s+/).length <= 4) loadDetails(); // words and short phrases: meaning and examples straight away
     } catch (e) {
       if (id !== reqId || signal.aborted || (e && e.code === 'cancelled')) return;
       setStatus(errorCopy(e), true);
@@ -839,8 +960,7 @@ Use correct Romanian diacritics.`;
     $('#more-label').textContent = 'Looking closer…';
     setStatus('');
     try {
-      await ready;
-      const d = engine === 'claude' ? await detailsWithClaude(cur, signal) : await detailsWithGoogle(cur, signal);
+      const d = await withEngine('details', [cur], signal);
       if (current !== cur) return;
       cur.d = normalizeDetails(d);
       remember(cur);
@@ -899,6 +1019,27 @@ Use correct Romanian diacritics.`;
     ta(l).focus();
   }
 
+  function renderEngine() {
+    $('#engine').textContent = {
+      claude: 'Translations by Claude',
+      api: 'Translations by Claude (API key)',
+      google: 'Translations by Google Translate',
+    }[engine];
+    const btn = $('#open-settings');
+    btn.hidden = inClaude;
+    btn.textContent = engine === 'api' ? 'Settings' : 'Get richer results with Claude';
+    $('#example-extra').hidden = inClaude || engine !== 'google';
+  }
+
+  function saveKey(key, ws) {
+    raw.set('vega.key', key);
+    raw.set('vega.ws', key ? ws : '');
+    api = null;
+    engine = pickEngine();
+    renderEngine();
+    $('#settings').hidden = true;
+  }
+
   function applyMe() {
     const wrap = $('#blocks');
     for (const l of ORDER[me]) wrap.append(blockEl(l));
@@ -941,6 +1082,20 @@ Use correct Romanian diacritics.`;
   window.addEventListener('hashchange', () => switchTo((location.hash || '').slice(1).toLowerCase()));
 
   $('#more').addEventListener('click', loadDetails);
+
+  $('#open-settings').addEventListener('click', () => {
+    const form = $('#settings');
+    form.hidden = !form.hidden;
+    if (form.hidden) return;
+    $('#api-key').value = raw.get('vega.key');
+    $('#api-ws').value = raw.get('vega.ws');
+    form.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+  });
+  $('#settings').addEventListener('submit', (e) => {
+    e.preventDefault();
+    saveKey($('#api-key').value.trim(), $('#api-ws').value.trim());
+  });
+  $('#remove-key').addEventListener('click', () => saveKey('', ''));
 
   let clearArmed = 0;
   $('#clear-history').addEventListener('click', (e) => {
