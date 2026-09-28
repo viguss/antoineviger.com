@@ -380,7 +380,7 @@
   </div>
 
   <div class="actions">
-    <button type="button" class="btn" id="more" hidden><svg><use href="#i-lens"/></svg><span id="more-label">Meaning &amp; examples</span></button>
+    <button type="button" class="btn" id="more" hidden><svg><use href="#i-lens"/></svg><span id="more-label">See more</span></button>
     <span class="status" id="status" role="status" aria-live="polite"></span>
   </div>
 
@@ -401,12 +401,12 @@
 
   <div class="engine-row">
     <p class="engine" id="engine"></p>
-    <button type="button" class="link" id="open-settings" hidden>Get richer results with Claude</button>
+    <button type="button" class="link" id="open-settings" hidden>Use Claude for “See more”</button>
   </div>
 
   <form class="settings" id="settings" hidden>
     <h2>Claude</h2>
-    <p>Enter the family code to get translations, meanings and examples from Claude. The code is saved on this device only.</p>
+    <p>Enter the family code so “See more” uses Claude: better translations, meanings, other words and examples in context. The code is saved on this device only.</p>
     <label for="family-code">Family code</label>
     <input id="family-code" type="password" autocomplete="off" autocapitalize="off" spellcheck="false">
     <p class="settings-msg" id="settings-msg" role="status" hidden></p>
@@ -471,7 +471,8 @@
   /* ---------- engines ----------
      claude: the viewer's own Claude account, inside the Claude app.
      relay:  Antoine's Claude relay (Supabase Edge Function antoineviger-translate), unlocked by the family code.
-     google: Google Translate, no account needed. */
+     google: Google Translate, no account needed.
+     On the site, translations always come from Google (instant); Claude only answers "See more". */
   const inClaude = !!(window.claude && typeof window.claude.use === 'function');
   const raw = {
     get(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } },
@@ -479,11 +480,11 @@
   };
   const RELAY_URL = 'https://vxofrlvkjinbadiiegtn.supabase.co/functions/v1/antoineviger-translate';
   const CODE_KEY = 'pbp.code';
-  let sample = null, engine = 'google';
-  const pickEngine = () => (sample ? 'claude' : !inClaude && raw.get(CODE_KEY) ? 'relay' : 'google');
+  let sample = null;
+  const engineFor = (kind) =>
+    sample ? 'claude' : kind === 'details' && !inClaude && raw.get(CODE_KEY) ? 'relay' : 'google';
   const ready = (async () => {
     if (inClaude) { try { sample = await window.claude.use('sample'); } catch (e) { sample = null; } }
-    engine = pickEngine();
     renderEngine();
   })();
 
@@ -552,12 +553,10 @@ Use correct Romanian diacritics.`;
     return j;
   }
 
-  async function translateWithRelay(src, text, signal) {
-    return readTranslation(src, text, (await askRelay({ kind: 'translate', src, text }, signal)).result);
-  }
+  // Claude also reviews Google's translations and sends back corrected ones with the details.
   async function detailsWithRelay(cur, signal) {
     const t = { fr: cur.t.fr || '', en: cur.t.en || '', ro: cur.t.ro || '' };
-    return (await askRelay({ kind: 'details', src: cur.src, t }, signal)).result;
+    return (await askRelay({ kind: 'details', src: cur.src, text: cur.text, t }, signal)).result;
   }
 
   async function gt(sl, tl, q, dts, signal, hl) {
@@ -615,12 +614,13 @@ Use correct Romanian diacritics.`;
 
   const ENGINES = {
     claude: { translate: translateWithClaude, details: detailsWithClaude },
-    relay: { translate: translateWithRelay, details: detailsWithRelay },
+    relay: { details: detailsWithRelay },
     google: { translate: translateWithGoogle, details: detailsWithGoogle },
   };
   // If the relay fails (wrong code, daily limit, no credit…), fall back to Google so the page keeps working.
   async function withEngine(kind, args, signal) {
     await ready;
+    const engine = engineFor(kind);
     try { return await ENGINES[engine][kind](...args, signal); } catch (e) {
       if (engine !== 'relay' || signal.aborted || (e && e.code === 'cancelled')) throw e;
       const r = await ENGINES.google[kind](...args, signal);
@@ -695,7 +695,7 @@ Use correct Romanian diacritics.`;
     const has = !!(current && current.t && others(current.src).some((l) => current.t[l]));
     more.hidden = !has || !!current.d;
     more.disabled = false;
-    $('#more-label').textContent = 'Meaning & examples';
+    $('#more-label').textContent = 'See more';
     updateTools();
   }
 
@@ -833,7 +833,6 @@ Use correct Romanian diacritics.`;
       saveState();
       renderDetails(null);
       syncControls();
-      if (text.split(/\s+/).length <= 4) loadDetails(); // words and short phrases: meaning and examples straight away
     } catch (e) {
       if (id !== reqId || signal.aborted || (e && e.code === 'cancelled')) return;
       setStatus(errorCopy(e), true);
@@ -884,11 +883,18 @@ Use correct Romanian diacritics.`;
     const signal = detailsCtl.signal;
     const more = $('#more');
     more.disabled = true;
-    $('#more-label').textContent = 'Looking closer…';
+    $('#more-label').textContent = engineFor('details') === 'google' ? 'Loading…' : 'Asking Claude…';
     setStatus('');
     try {
       const d = await withEngine('details', [cur], signal);
       if (current !== cur) return;
+      const better = d && d.translations;
+      if (better) {
+        for (const l of others(cur.src)) {
+          const v = str(better[l]);
+          if (v) { cur.t[l] = v; setValue(l, v); }
+        }
+      }
       cur.d = normalizeDetails(d);
       remember(cur);
       saveState();
@@ -947,19 +953,17 @@ Use correct Romanian diacritics.`;
   }
 
   function renderEngine() {
-    $('#engine').textContent = {
-      claude: 'Translations by Claude',
-      relay: 'Translations by Claude',
-      google: 'Translations by Google Translate',
-    }[engine];
+    const withClaude = engineFor('details') !== 'google';
+    $('#engine').textContent = sample
+      ? 'Translations by Claude'
+      : withClaude ? 'Translations by Google Translate · “See more” by Claude' : 'Translations by Google Translate';
     const btn = $('#open-settings');
     btn.hidden = inClaude;
-    btn.textContent = engine === 'relay' ? 'Settings' : 'Get richer results with Claude';
+    btn.textContent = withClaude ? 'Settings' : 'Use Claude for “See more”';
   }
 
   function useCode(code) {
     raw.set(CODE_KEY, code);
-    engine = pickEngine();
     renderEngine();
     $('#settings').hidden = true;
   }

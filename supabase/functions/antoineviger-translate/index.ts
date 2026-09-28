@@ -11,6 +11,7 @@ const ALLOWED_ORIGINS = ['https://antoineviger.com', 'https://www.antoineviger.c
 const MODEL = 'claude-opus-5';
 const DAILY_LIMIT = Number(Deno.env.get('ANTOINEVIGER_TRANSLATE_DAILY_LIMIT') ?? 200);
 const MAX_TEXT = 400;
+const CLAUDE_TIMEOUT_MS = 60_000;
 const CODES = ['fr', 'en', 'ro'];
 const NAMES: Record<string, string> = { fr: 'French', en: 'English', ro: 'Romanian' };
 
@@ -37,14 +38,16 @@ ${text}
 Give it in French, English and Romanian. Keep the meaning, tone and register. For a single word, give the most natural everyday equivalent (verbs in the infinitive, e.g. "to miss"). Use correct Romanian diacritics (ă â î ș ț).
 If the text is clearly written in one of the other two languages rather than ${NAMES[src]}, set "detected" to that language's code and translate from it.`;
 
-const detailsPrompt = (src: string, t: Record<string, string>) =>
+const detailsPrompt = (src: string, text: string, t: Record<string, string>) =>
 `You help two people learning English (one native French speaker, one native Romanian speaker) understand exactly what a word or phrase means.
-French: "${t.fr}"
-English: "${t.en}"
-Romanian: "${t.ro}"
-(first typed in ${NAMES[src]})
+Text typed in the ${NAMES[src]} box:
+"""
+${text}
+"""
+Google Translate suggested: French "${t.fr}", English "${t.en}", Romanian "${t.ro}".
 
 Rules:
+- translations: the most natural everyday French, English and Romanian for the typed text. Keep Google's version when it is right; fix it when it is wrong or unnatural. For ${NAMES[src]}, return the typed text unchanged.
 - sense: one short sentence per language, written in that language, explaining what it means. Use simple English for "en".
 - alternatives: 2 to 4 per language, written in that language: synonyms or close words. Each nuance is at most 8 words, in the same language, saying how it differs (more formal, stronger, slang, only for places…). If the text is a whole sentence, give other natural ways to say it.
 - examples: 3 short everyday sentences that say the same thing in the three languages. In each sentence, wrap the word (or its equivalent) in **double asterisks**.
@@ -56,6 +59,7 @@ const S = { type: 'string' };
 const ALTS = { type: 'array', items: obj({ word: S, nuance: S }) };
 const TRANSLATION_SCHEMA = obj({ detected: { type: 'string', enum: CODES }, fr: S, en: S, ro: S });
 const DETAILS_SCHEMA = obj({
+  translations: obj({ fr: S, en: S, ro: S }),
   sense: obj({ fr: S, en: S, ro: S }),
   alternatives: obj({ fr: ALTS, en: ALTS, ro: ALTS }),
   examples: { type: 'array', items: obj({ fr: S, en: S, ro: S }) },
@@ -107,14 +111,15 @@ Deno.serve(async (req) => {
     schema = TRANSLATION_SCHEMA;
     effort = 'low';
   } else if (body.kind === 'details') {
+    const text = str(body.text);
     const t: Record<string, string> = {};
     for (const l of CODES) t[l] = str(body.t?.[l]);
-    if (!CODES.includes(src) || CODES.some((l) => t[l].length > MAX_TEXT) || !CODES.some((l) => t[l])) {
+    if (!CODES.includes(src) || !text || text.length > MAX_TEXT || CODES.some((l) => t[l].length > MAX_TEXT)) {
       return reply(req, 400, { error: 'bad_request' });
     }
-    prompt = detailsPrompt(src, t);
+    prompt = detailsPrompt(src, text, t);
     schema = DETAILS_SCHEMA;
-    effort = 'medium';
+    effort = 'low';
   } else {
     return reply(req, 400, { error: 'bad_request' });
   }
@@ -130,6 +135,10 @@ Deno.serve(async (req) => {
     return reply(req, 503, { error: 'upstream_error' });
   }
 
+  // Stop waiting after 60 s (or when the page gives up) instead of hanging until the platform kills the function
+  const timeout = AbortSignal.timeout(CLAUDE_TIMEOUT_MS);
+  const signal = AbortSignal.any([req.signal, timeout]);
+  const started = Date.now();
   try {
     const res: any = await api.beta.messages.create({
       model: MODEL,
@@ -138,12 +147,16 @@ Deno.serve(async (req) => {
       fallbacks: 'default',
       output_config: { effort, format: { type: 'json_schema', schema } },
       messages: [{ role: 'user', content: prompt }],
-    } as any, { signal: req.signal });
+    } as any, { signal });
+    console.log(JSON.stringify({ kind: body.kind, ms: Date.now() - started, stop: res.stop_reason, out: res.usage?.output_tokens }));
     if (res.stop_reason === 'refusal') return reply(req, 422, { error: 'refused' });
     const text = res.content.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('');
     return reply(req, 200, { result: JSON.parse(text) });
   } catch (e) {
-    if (e instanceof Anthropic.APIUserAbortError) return reply(req, 499, { error: 'cancelled' });
+    if (e instanceof Anthropic.APIUserAbortError || signal.aborted) {
+      console.log(JSON.stringify({ kind: body.kind, ms: Date.now() - started, aborted: timeout.aborted ? 'timeout' : 'client' }));
+      return timeout.aborted ? reply(req, 504, { error: 'timeout' }) : reply(req, 499, { error: 'cancelled' });
+    }
     if (e instanceof Anthropic.AuthenticationError || e instanceof Anthropic.PermissionDeniedError) {
       console.error('anthropic auth', e.message);
       return reply(req, 503, { error: 'server_key' });
