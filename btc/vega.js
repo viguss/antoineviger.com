@@ -153,10 +153,11 @@ function welcome() {
 
 function open(q) {
   $("vpanel").hidden = false; $("vfab").hidden = true;
+  document.body.classList.add("vopen");
   if (!body.children.length) welcome();
   if (q) send(q); else $("vinput").focus();
 }
-function close() { $("vpanel").hidden = true; $("vfab").hidden = false; }
+function close() { $("vpanel").hidden = true; $("vfab").hidden = false; document.body.classList.remove("vopen"); }
 function showSettings(on) {
   $("vset").hidden = !on; body.hidden = on; $("vchips").hidden = on; $("vform").hidden = on;
   $("vGear").textContent = on ? "Conversation" : "Réglages";

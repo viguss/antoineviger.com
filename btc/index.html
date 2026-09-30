@@ -187,6 +187,26 @@ footer b{color:var(--muted)}
 .vhero p{margin:0;color:var(--muted);font-size:13px;max-width:36ch}
 .vhero p b{font-size:inherit;color:var(--text)}
 .welcome{color:var(--muted);font-size:13px}
+@media (max-width:560px){
+  .vpanel{width:100%;height:100dvh}
+  .vhead{padding:10px 12px;gap:8px}
+  .vhead .av{width:38px;height:38px}
+  .vhead .who span{display:none}
+  .vhead .who b{font-size:16px}
+  .vhead button{padding:7px 9px}
+  .vhero-bot{width:104px;height:104px}
+  .vhero{margin:24px 0 auto}
+  .chips{padding:0 12px 8px}
+  .vbody{padding:14px 12px}
+  .vfoot{padding:10px 12px}
+  .vset{padding:14px 12px}
+  .vset .row2{grid-template-columns:1fr}
+  /* 16px : en dessous, iOS zoome à la mise au point */
+  .vfoot textarea,.vset input,.vset select,.vset textarea{font-size:16px}
+  .msg.user{max-width:92%}
+  .md th{white-space:nowrap}
+}
+body.vopen{overflow:hidden}
 .welcome b{color:var(--text)}
 </style>
 </head>
@@ -787,6 +807,6 @@ safeLoad();
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
-<script type="module" src="vega.js"></script>
+<script type="module" src="vega.js?v=20260930"></script>
 </body>
 </html>
