@@ -181,7 +181,7 @@ footer b{color:var(--muted)}
 .vset .save{background:var(--amber);color:#1a1405;border-color:var(--amber);font-weight:700;padding:10px}
 .vset p{margin:0;font-size:12px;color:var(--faint)}
 .vset a{color:var(--buy)}
-.vhero{margin:auto 0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:12px 8px}
+.vhero{margin:auto 0;justify-content:center;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:12px 8px}
 .vhero-bot{width:132px;height:132px;margin-bottom:6px;filter:drop-shadow(0 10px 24px rgba(76,141,255,.25))}
 .vhero b{font-size:17px}
 .vhero p{margin:0;color:var(--muted);font-size:13px;max-width:36ch}
@@ -194,8 +194,8 @@ footer b{color:var(--muted)}
   .vhead .who span{display:none}
   .vhead .who b{font-size:16px}
   .vhead button{padding:7px 9px}
-  .vhero-bot{width:104px;height:104px}
-  .vhero{margin:24px 0 auto}
+  .vhero-bot{width:96px;height:96px}
+  .vhero{margin:auto 0}
   .chips{padding:0 12px 8px}
   .vbody{padding:14px 12px}
   .vfoot{padding:10px 12px}
@@ -205,6 +205,11 @@ footer b{color:var(--muted)}
   .vfoot textarea,.vset input,.vset select,.vset textarea{font-size:16px}
   .msg.user{max-width:92%}
   .md th{white-space:nowrap}
+}
+@media (max-height:640px){
+  .vhero-bot{width:72px;height:72px;margin-bottom:0}
+  .vhero b{font-size:15px}
+  .vhero{gap:6px}
 }
 body.vopen{overflow:hidden}
 /* iOS : figer la page sous le chat, sinon elle défile derrière le clavier */
@@ -809,6 +814,6 @@ safeLoad();
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
-<script type="module" src="vega.js?v=20260930b"></script>
+<script type="module" src="vega.js?v=20260930c"></script>
 </body>
 </html>

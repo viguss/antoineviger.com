@@ -178,7 +178,7 @@ function open(q) {
   if (isPhone()) { document.body.style.top = -savedY + "px"; document.body.classList.add("vfixed"); }
   fitPanel();
   if (!body.children.length) welcome();
-  if (q) send(q); else $("vinput").focus();
+  if (q) send(q); else if (!isPhone()) $("vinput").focus();
 }
 function close() {
   $("vpanel").hidden = true; $("vfab").hidden = false;
@@ -205,7 +205,7 @@ $("vchips").addEventListener("click", (e) => { const b = e.target.closest("butto
 $("vform").addEventListener("submit", (e) => { e.preventDefault(); if (busy) { stream && stream.abort(); return; } const t = $("vinput").value.trim(); if (t) { $("vinput").value = ""; autosize(); send(t); } });
 const autosize = () => { const t = $("vinput"); t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 140) + "px"; };
 $("vinput").addEventListener("input", autosize);
-$("vinput").addEventListener("focus", () => setTimeout(() => { fitPanel(); body.scrollTop = body.scrollHeight; }, 300));
+$("vinput").addEventListener("focus", () => setTimeout(() => { fitPanel(); if (body.querySelector(".msg")) body.scrollTop = body.scrollHeight; }, 300));
 $("vinput").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("vform").requestSubmit(); } });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("vpanel").hidden) close(); });
 
