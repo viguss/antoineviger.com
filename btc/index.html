@@ -207,6 +207,8 @@ footer b{color:var(--muted)}
   .md th{white-space:nowrap}
 }
 body.vopen{overflow:hidden}
+/* iOS : figer la page sous le chat, sinon elle défile derrière le clavier */
+body.vfixed{position:fixed;left:0;right:0;width:100%}
 .welcome b{color:var(--text)}
 </style>
 </head>
@@ -807,6 +809,6 @@ safeLoad();
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
-<script type="module" src="vega.js?v=20260930"></script>
+<script type="module" src="vega.js?v=20260930b"></script>
 </body>
 </html>

@@ -151,13 +151,40 @@ function welcome() {
   body.appendChild(hero);
 }
 
+// iOS : quand le clavier s'ouvre, la zone visible rétrécit mais un élément fixe
+// garde sa taille. On recale le panneau sur le visualViewport.
+const vv = window.visualViewport;
+const isPhone = () => window.innerWidth <= 560;
+function fitPanel() {
+  const p = $("vpanel");
+  if (p.hidden) return;
+  if (vv && isPhone()) {
+    p.style.top = vv.offsetTop + "px";
+    p.style.left = vv.offsetLeft + "px";
+    p.style.width = vv.width + "px";
+    p.style.height = vv.height + "px";
+  } else {
+    p.style.top = p.style.left = p.style.width = p.style.height = "";
+  }
+}
+if (vv) { vv.addEventListener("resize", fitPanel); vv.addEventListener("scroll", fitPanel); }
+window.addEventListener("orientationchange", () => setTimeout(fitPanel, 250));
+
+let savedY = 0;
 function open(q) {
   $("vpanel").hidden = false; $("vfab").hidden = true;
+  savedY = window.scrollY;
   document.body.classList.add("vopen");
+  if (isPhone()) { document.body.style.top = -savedY + "px"; document.body.classList.add("vfixed"); }
+  fitPanel();
   if (!body.children.length) welcome();
   if (q) send(q); else $("vinput").focus();
 }
-function close() { $("vpanel").hidden = true; $("vfab").hidden = false; document.body.classList.remove("vopen"); }
+function close() {
+  $("vpanel").hidden = true; $("vfab").hidden = false;
+  document.body.classList.remove("vopen", "vfixed"); document.body.style.top = "";
+  window.scrollTo(0, savedY);
+}
 function showSettings(on) {
   $("vset").hidden = !on; body.hidden = on; $("vchips").hidden = on; $("vform").hidden = on;
   $("vGear").textContent = on ? "Conversation" : "Réglages";
@@ -178,6 +205,7 @@ $("vchips").addEventListener("click", (e) => { const b = e.target.closest("butto
 $("vform").addEventListener("submit", (e) => { e.preventDefault(); if (busy) { stream && stream.abort(); return; } const t = $("vinput").value.trim(); if (t) { $("vinput").value = ""; autosize(); send(t); } });
 const autosize = () => { const t = $("vinput"); t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 140) + "px"; };
 $("vinput").addEventListener("input", autosize);
+$("vinput").addEventListener("focus", () => setTimeout(() => { fitPanel(); body.scrollTop = body.scrollHeight; }, 300));
 $("vinput").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("vform").requestSubmit(); } });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("vpanel").hidden) close(); });
 
