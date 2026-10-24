@@ -235,6 +235,44 @@ function estimateCost(u) {
   return inp * 5e-6 + (u.output_tokens || 0) * 25e-6 + web * 0.01;
 }
 
+const isNetErr = (e) => !!e && (e.name === "APIConnectionError" || e.name === "TypeError" ||
+  /load failed|failed to fetch|network|connection|timed out|timeout/i.test(e.message || ""));
+
+async function callClaude(c, out, state) {
+  const status = (t) => { out.status.hidden = !t; out.status.innerHTML = t ? `<span class="dot load"></span>${t}` : ""; };
+  for (let turn = 0; turn < 4; turn++) {
+    stream = c.beta.messages.stream({
+      model: MODEL,
+      max_tokens: 32000,
+      betas: ["server-side-fallback-2026-07-01"],
+      fallbacks: "default",
+      cache_control: { type: "ephemeral" },
+      system: SYSTEM,
+      tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 5, user_location: { type: "approximate", country: "FR", timezone: "Europe/Paris" } }],
+      messages: history,
+    });
+    for await (const ev of stream) {
+      if (ev.type === "content_block_start") {
+        const t = ev.content_block.type;
+        if (t === "server_tool_use") { status("Recherche sur le web…"); mood("searching", out.bot); }
+        else if (t === "thinking") { status("Réflexion…"); mood("thinking", out.bot); }
+        else if (t === "text") { status(""); mood("talking", out.bot); if (state.text && !state.text.endsWith("\n")) state.text += "\n\n"; }
+      } else if (ev.type === "content_block_delta" && ev.delta.type === "text_delta") {
+        state.text += ev.delta.text; out.md.innerHTML = md(state.text);
+        const nearBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 120;
+        if (nearBottom) body.scrollTop = body.scrollHeight;
+      }
+    }
+    const msg = await stream.finalMessage();
+    history.push({ role: "assistant", content: msg.content });
+    state.cost += estimateCost(msg.usage) || 0;
+    state.done = true; // au moins une réponse complète : ne pas relancer depuis zéro
+    if (msg.stop_reason === "refusal") { state.text += "\n\n_Je ne peux pas répondre à cette demande._"; return; }
+    if (msg.stop_reason !== "pause_turn") return;
+    status("Recherche sur le web…");
+  }
+}
+
 async function send(question) {
   if (busy) return;
   showSettings(false);
@@ -251,55 +289,55 @@ async function send(question) {
   blocks.push({ type: "text", text: `<profil>\n${profileText()}\n</profil>\n\nDate et heure : ${new Date().toLocaleString("fr-FR", { timeZone: "Europe/Paris" })} (Paris)\n\n${question}` });
   history.push({ role: "user", content: blocks });
 
-  const out = addBot(); let text = ""; let cost = 0;
+  const out = addBot();
+  const state = { text: "", cost: 0, done: false };
   const status = (t) => { out.status.hidden = !t; out.status.innerHTML = t ? `<span class="dot load"></span>${t}` : ""; };
   setBusy(true); status("Vega analyse les données…"); mood("thinking", out.bot);
-  try {
-    for (let turn = 0; turn < 4; turn++) {
-      stream = c.beta.messages.stream({
-        model: MODEL,
-        max_tokens: 64000,
-        betas: ["server-side-fallback-2026-07-01"],
-        fallbacks: "default",
-        cache_control: { type: "ephemeral" },
-        system: SYSTEM,
-        tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 5, user_location: { type: "approximate", country: "FR", timezone: "Europe/Paris" } }],
-        messages: history,
-      });
-      for await (const ev of stream) {
-        if (ev.type === "content_block_start") {
-          const t = ev.content_block.type;
-          if (t === "server_tool_use") { status("Recherche sur le web…"); mood("searching", out.bot); }
-          else if (t === "thinking") { status("Réflexion…"); mood("thinking", out.bot); }
-          else if (t === "text") { status(""); mood("talking", out.bot); if (text && !text.endsWith("\n")) text += "\n\n"; }
-        } else if (ev.type === "content_block_delta" && ev.delta.type === "text_delta") {
-          text += ev.delta.text; out.md.innerHTML = md(text);
-          const nearBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 120;
-          if (nearBottom) body.scrollTop = body.scrollHeight;
-        }
+
+  let err = null;
+  // La connexion mobile coupe souvent en plein flux : on retente une fois tout seul.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      err = null;
+      await callClaude(c, out, state);
+      break;
+    } catch (e) {
+      err = e;
+      if (e && e.name === "APIUserAbortError") break;
+      if (attempt === 0 && isNetErr(e) && !state.done) {
+        status("Connexion interrompue, je réessaie…");
+        await new Promise((r) => setTimeout(r, 1500));
+        continue;
       }
-      const msg = await stream.finalMessage();
-      history.push({ role: "assistant", content: msg.content });
-      cost += estimateCost(msg.usage) || 0;
-      if (msg.stop_reason === "refusal") { text += "\n\n_Je ne peux pas répondre à cette demande._"; break; }
-      if (msg.stop_reason !== "pause_turn") break;
-      status("Recherche sur le web…");
+      break;
     }
-    out.md.innerHTML = md(text || "_Pas de réponse._");
-    if (cost) { out.cost.hidden = false; out.cost.textContent = `≈ ${cost.toFixed(3).replace(".", ",")} $ pour cette réponse`; }
-  } catch (err) {
-    const wsMissing = err && err.status === 400 && /workspace/i.test(err.message || "");
+  }
+
+  if (!err) {
+    out.md.innerHTML = md(state.text || "_Pas de réponse._");
+    if (state.cost) { out.cost.hidden = false; out.cost.textContent = `≈ ${state.cost.toFixed(3).replace(".", ",")} $ pour cette réponse`; }
+  } else {
+    const wsMissing = err.status === 400 && /workspace/i.test(err.message || "");
+    const offline = typeof navigator !== "undefined" && navigator.onLine === false;
     const m = wsMissing ? "Ta clé API n'est rattachée à aucun workspace. Ouvre **Réglages** et renseigne l'**ID du workspace** (console.anthropic.com → Settings → Workspaces, il commence par `wrkspc_`), ou crée une clé directement dans un workspace."
-      : err && err.status === 401 ? "Clé API refusée : vérifie-la dans **Réglages**."
-      : err && err.status === 429 ? "Trop de requêtes ou limite de dépense atteinte. Réessaie dans une minute."
-      : err && err.name === "APIUserAbortError" ? "_Réponse interrompue._"
-      : `Erreur : ${err && err.message ? err.message : err}`;
-    out.md.innerHTML = md((text ? text + "\n\n" : "") + m);
+      : err.name === "APIUserAbortError" ? "_Réponse interrompue._"
+      : err.status === 401 ? "Clé API refusée : vérifie-la dans **Réglages**."
+      : err.status === 429 ? "Trop de requêtes ou limite de dépense atteinte sur ton compte Anthropic. Réessaie dans une minute."
+      : err.status >= 500 ? "L'API Anthropic ne répond pas correctement en ce moment. Réessaie dans un instant."
+      : isNetErr(err) ? (offline ? "Pas de connexion internet. Reconnecte-toi puis réessaie."
+          : "La connexion à l'API s'est coupée (réseau mobile, changement de Wi-Fi ou onglet mis en veille). Rien n'est perdu : réessaie.")
+      : `Erreur : ${err.message || err}`;
+    out.md.innerHTML = md((state.text ? state.text + "\n\n" : "") + m);
+    if (err.name !== "APIUserAbortError") {
+      const again = document.createElement("button");
+      again.type = "button"; again.className = "vretry"; again.textContent = "Réessayer";
+      again.addEventListener("click", () => { again.remove(); send(question); });
+      out.md.appendChild(again);
+    }
     // retire le tour utilisateur resté sans réponse pour garder un historique valide
     if (history.length && history[history.length - 1].role === "user") { history.pop(); lastSnapSent = null; }
-  } finally {
-    status(""); setBusy(false); stream = null; mood("idle", out.bot);
   }
+  status(""); setBusy(false); stream = null; mood("idle", out.bot);
 }
 
 loadSettings();
