@@ -125,10 +125,50 @@ function mood(state, extra) {
     if (state !== "idle") { el.classList.add(state); const e = el.querySelector(".rb-eyes"); if (e) e.style.transform = ""; }
   }
 }
+// ---------- historique : 7 jours dans ce navigateur ----------
+const CONV_KEY = "vega.convs", CONV_MAXAGE = 7 * 864e5, CONV_MAXBYTES = 1.2e6;
+function loadConvs() {
+  try {
+    const list = JSON.parse(store.get(CONV_KEY, "[]"));
+    return Array.isArray(list) ? list.filter((c) => c && c.msgs && c.msgs.length && Date.now() - (c.u || c.t) < CONV_MAXAGE) : [];
+  } catch { return []; }
+}
+function saveConvs() {
+  try {
+    let json = JSON.stringify(convs);
+    while (json.length > CONV_MAXBYTES && convs.length > 1) { convs.shift(); json = JSON.stringify(convs); }
+    localStorage.setItem(CONV_KEY, json);
+  } catch {}
+}
+let convs = loadConvs();
+let conv = convs.length ? convs[convs.length - 1] : null;
+function remember(role, text) {
+  if (!conv) { conv = { t: Date.now(), msgs: [] }; convs.push(conv); }
+  conv.msgs.push({ r: role, c: text }); conv.u = Date.now();
+  saveConvs();
+}
+const convTitle = (c) => { const first = c.msgs.find((m) => m.r === "u"); return first ? first.c.replace(/\s+/g, " ").slice(0, 60) : "Conversation"; };
+function convDate(c) {
+  const d = new Date(c.u || c.t), today = new Date();
+  const sameDay = d.toDateString() === today.toDateString();
+  const hier = new Date(today - 864e5).toDateString() === d.toDateString();
+  const h = d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  return sameDay ? h : hier ? "hier " + h : d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }) + " " + h;
+}
+function openConv(c) {
+  conv = c;
+  history = c.msgs.map((m) => ({ role: m.r === "u" ? "user" : "assistant", content: m.c }));
+  lastSnapSent = null;
+  body.innerHTML = "";
+  for (const m of c.msgs) m.r === "u" ? addUser(m.c, true) : addBot(md(m.c));
+  body.scrollTop = body.scrollHeight;
+}
+
 const md = (t) => window.DOMPurify.sanitize(window.marked.parse(t || ""), { ADD_ATTR: ["target"] });
 
-function addUser(text) {
+function addUser(text, replay) {
   body.querySelector(".vhero")?.remove();
+  if (!replay) remember("u", text);
   const el = document.createElement("div"); el.className = "msg user"; el.textContent = text;
   body.appendChild(el); body.scrollTop = body.scrollHeight;
 }
@@ -149,6 +189,20 @@ function welcome() {
       ? "Je lis ton dashboard en direct : pression, gamma, flux, volatilité, futures, sentiment. Demande-moi d'expliquer un panneau, de faire le point sur ton DCA et ta <b>poche opportunité</b>, ou ce que le marché attend cette semaine."
       : "Pour que je puisse répondre, ouvre <b>Réglages</b>, colle ta clé API Anthropic (elle reste dans ce navigateur) et renseigne ton plan DCA."}</p>`;
   body.appendChild(hero);
+  const others = convs.filter((c) => c !== conv);
+  if (others.length) {
+    const list = document.createElement("div");
+    list.className = "vconvs";
+    list.innerHTML = `<h4>Conversations des 7 derniers jours</h4>`;
+    for (const c of others.slice(-8).reverse()) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.innerHTML = `<span>${c.msgs.find((m) => m.r === "u") ? convTitle(c).replace(/[<>&]/g, "") : "Conversation"}</span><small>${convDate(c)}</small>`;
+      b.addEventListener("click", () => openConv(c));
+      list.appendChild(b);
+    }
+    body.appendChild(list);
+  }
 }
 
 // iOS : quand le clavier s'ouvre, la zone visible rétrécit mais un élément fixe
@@ -177,7 +231,7 @@ function open(q) {
   document.body.classList.add("vopen");
   if (isPhone()) { document.body.style.top = -savedY + "px"; document.body.classList.add("vfixed"); }
   fitPanel();
-  if (!body.children.length) welcome();
+  if (!body.children.length) { if (conv && conv.msgs.length) openConv(conv); else welcome(); }
   if (q) send(q); else if (!isPhone()) $("vinput").focus();
 }
 function close() {
@@ -193,7 +247,7 @@ function showSettings(on) {
 $("vfab").addEventListener("click", () => open());
 $("vClose").addEventListener("click", close);
 $("vGear").addEventListener("click", () => showSettings($("vset").hidden));
-$("vNew").addEventListener("click", () => { if (stream) stream.abort(); history = []; lastSnapSent = null; showSettings(false); welcome(); });
+$("vNew").addEventListener("click", () => { if (stream) stream.abort(); if (conv && !conv.msgs.length) convs.pop(); conv = null; history = []; lastSnapSent = null; showSettings(false); welcome(); });
 $("vSave").addEventListener("click", () => {
   store.set("vega.key", $("vKey").value.trim());
   store.set("vega.ws", $("vWs").value.trim());
@@ -315,6 +369,7 @@ async function send(question) {
 
   if (!err) {
     out.md.innerHTML = md(state.text || "_Pas de réponse._");
+    if (state.text) remember("a", state.text);
     if (state.cost) { out.cost.hidden = false; out.cost.textContent = `≈ ${state.cost.toFixed(3).replace(".", ",")} $ pour cette réponse`; }
   } else {
     const wsMissing = err.status === 400 && /workspace/i.test(err.message || "");
@@ -336,6 +391,7 @@ async function send(question) {
     }
     // retire le tour utilisateur resté sans réponse pour garder un historique valide
     if (history.length && history[history.length - 1].role === "user") { history.pop(); lastSnapSent = null; }
+    if (conv && conv.msgs.length && conv.msgs[conv.msgs.length - 1].r === "u") { conv.msgs.pop(); saveConvs(); }
   }
   status(""); setBusy(false); stream = null; mood("idle", out.bot);
 }
