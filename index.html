@@ -205,6 +205,19 @@
         </g>
       </svg>
     </a>
+    <a class="bubble small" href="/immo/" id="bubble-immo" aria-label="Immobilier" style="--w: 5.8s; --s: 17s">
+      <span class="body"></span>
+      <span class="film"></span>
+      <span class="shine"></span>
+      <span class="shine small"></span>
+      <svg class="sym" viewBox="0 0 48 48" aria-hidden="true">
+        <g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 23L24 7l19 16"/>
+          <path d="M10 21v19h28V21"/>
+          <path d="M19 40V28h10v12"/>
+        </g>
+      </svg>
+    </a>
   </nav>
 
 <script>
@@ -226,7 +239,7 @@
   // Start on either side of the name, a little above and below it
   function place() {
     measure();
-    const spots = [[0.24, 0.32], [0.72, 0.66]];
+    const spots = [[0.24, 0.32], [0.72, 0.66], [0.70, 0.24]];
     for (const b of bubbles) {
       const [fx, fy] = spots[b.i % spots.length];
       b.x = fx * W - b.d / 2 + (Math.random() - 0.5) * W * 0.08;
