@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive"><meta name="referrer" content="strict-origin-when-cross-origin">
+<title>ImmoRadar — Explorer les ventes du Paris 11e</title>
+<meta name="description" content="Aperçu public : 1 000 mutations officielles DVF+ du Paris 11e, avec dates, prix, sources et limites.">
+<link rel="stylesheet" href="./vendor/maplibre-gl.css"><link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<header><a class="brand" href="./"><span class="symbol">◎</span> ImmoRadar <small>APERÇU</small></a><a class="back" href="/">antoineviger.com ↗</a></header>
+<main>
+<section class="intro"><div><p class="eyebrow">LES DONNÉES AVANT L’INTUITION</p><h1>Le marché, transaction<br class="desktop"> par transaction.</h1><p class="subtitle">Paris 11e · Mutations historiques DVF+ / Cerema</p></div><div class="source-pill"><span>● Source publique officielle</span><small>Extrait publié le 25 octobre 2026</small></div></section>
+<div class="notice"><strong>Aperçu public · 1 000 mutations réelles</strong><span>Extrait figé du 16 mars au 30 juin 2026. Aucun compte ni backend. Les indicateurs portent uniquement sur cet extrait, pas sur tout le marché.</span></div>
+<div id="data-error" class="error" role="alert" hidden></div>
+<div class="workspace">
+<aside>
+<div class="panel-title"><h2>Explorer</h2><span class="tag">75011</span></div><p class="muted">Filtrez l’extrait et déplacez la carte pour explorer les ventes.</p>
+<form id="filters">
+<fieldset><legend>Période de vente</legend><div class="pair"><label>Du<input type="date" id="from" aria-label="Date de début" value="2026-03-16"></label><label>Au<input type="date" id="to" aria-label="Date de fin" value="2026-06-30"></label></div></fieldset>
+<fieldset><legend>Surface des appartements · m²</legend><div class="pair"><label>Minimum<input type="number" id="surface-min" min="0" placeholder="Sans minimum"></label><label>Maximum<input type="number" id="surface-max" min="0" placeholder="Sans maximum"></label></div></fieldset>
+<fieldset><legend>Prix global de mutation · €</legend><div class="pair"><label>Minimum<input type="number" id="price-min" min="0" step="1000" placeholder="Sans minimum"></label><label>Maximum<input type="number" id="price-max" min="0" step="1000" placeholder="Sans maximum"></label></div></fieldset>
+<label class="quality">Qualité du prix/m²<select id="quality"><option value="all">Toutes les mutations</option><option value="qualified">Prix/m² qualifié uniquement</option><option value="excluded">Prix/m² exclu uniquement</option></select></label>
+<label class="checkbox"><input id="in-view" type="checkbox">Limiter à la zone visible</label>
+<button class="primary" type="submit">Appliquer les filtres</button><button id="reset-filters" class="secondary" type="button">Réinitialiser</button>
+<p id="filter-error" class="error" role="alert" hidden></p>
+</form>
+<div class="limitations"><h3>Ce que ces données disent</h3><p>Un point représente une mutation, pas nécessairement un appartement. Le prix peut inclure plusieurs biens ou annexes.</p><p>Localisation au centroïde cadastral. Surface fiscale, non certifiée Carrez. Prix historiques non corrigés.</p><strong>Aucune estimation de valeur.</strong></div>
+<a class="source-link" href="#provenance">Source et méthode de sélection ↓</a>
+</aside>
+<section class="results" aria-label="Résultats des transactions">
+<div class="stats" aria-live="polite"><div><small>Mutations de l’extrait filtré</small><strong id="count">—</strong></div><div><small>Prix/m² qualifiés</small><strong id="qualified">—</strong></div><div><small>Médiane de l’extrait qualifié</small><strong id="median">—</strong></div></div>
+<div class="map-shell"><div id="map" aria-label="Carte interactive des mutations"></div><div class="legend"><span><i class="dot green"></i> Prix/m² qualifié</span><span><i class="dot amber"></i> Non qualifié</span><small>Positions cadastrales approximatives · points superposables</small></div><button id="recenter" class="map-button">Recentrer Paris 11e</button></div>
+<p id="map-error" class="error" role="alert" hidden></p>
+<div class="list-heading"><h2>Les ventes observées</h2><span id="list-count">Chargement de l’extrait…</span></div>
+<p id="empty" class="empty" hidden>Aucune transaction disponible pour ces filtres dans cet extrait. Cela ne signifie pas qu’aucune vente n’a eu lieu.</p>
+<div class="table-wrap"><table><thead><tr><th>Date</th><th>Type de mutation</th><th>Prix global</th><th>Surface apt.</th><th>Qualité</th><th><span class="sr-only">Détails</span></th></tr></thead><tbody id="rows"></tbody></table></div>
+<nav class="pagination" aria-label="Pagination des ventes"><button id="previous">← Précédent</button><span id="page-label">Page —</span><button id="next">Suivant →</button></nav>
+</section>
+</div>
+<section id="provenance" class="provenance"><p class="eyebrow">TRAÇABILITÉ ET LIMITES</p><h2>Un extrait vérifiable, pas une estimation.</h2><div class="provenance-grid"><div><h3>Source officielle</h3><p>DVF+ open data, Cerema / DGALN, millésime <strong>2026-2-ED261</strong>, sous Licence Ouverte 2.0. Import vérifié le 24 octobre 2026.</p><p><a href="https://cerema.app.box.com/v/dvfplus-opendata/file/2528249865518" target="_blank" rel="noopener noreferrer">Export officiel Cerema ↗</a> · <a href="https://www.etalab.gouv.fr/licence-ouverte-open-licence/" target="_blank" rel="noopener noreferrer">Licence ↗</a></p></div><div><h3>Sélection de l’aperçu</h3><p>Les 1 000 mutations géolocalisées les plus récentes de la base importée du Paris 11e, triées par date décroissante puis identifiant source. Du 16/03/2026 au 30/06/2026. Aucune actualisation automatique.</p><p>234 mutations ont un prix/m² qualifié avant filtrage. La sélection est partielle et ne permet pas de conclure à une tendance de marché.</p></div><div><h3>Calcul prudent</h3><p>Prix/m² uniquement pour une vente ordinaire d’un appartement, sans autre local ni annexe identifiés, avec un seul lot, une parcelle, une disposition et des montants exploitables. Toute ambiguïté entraîne une exclusion du ratio.</p><p>Les raisons d’exclusion sont visibles dans chaque fiche. L’emplacement ne désigne jamais un logement individuel avec certitude.</p></div></div><details><summary>Empreinte de l’archive source</summary><code>b46d039b205f265a67782d803f36adcbad7ab76d6c530060662444a434e1305b</code></details><p class="muted">Cette page est un aperçu statique public distinct de l’application privée ImmoRadar. Pas d’annonces, de comptes, de données personnelles ajoutées ni de conseil financier. Fond de carte © OpenStreetMap ; les requêtes de tuiles sont transmises à son opérateur. Aucun outil d’analyse d’audience ajouté.</p></section>
+</main>
+<footer>◎ ImmoRadar <span>Des ventes réelles. Des limites explicites.</span><a href="/">Retour au site</a></footer>
+<dialog id="details"><div class="dialog-head"><p class="eyebrow">MUTATION OFFICIELLE</p><button id="close-details" aria-label="Fermer les détails">✕</button></div><h2 id="detail-title"></h2><div id="detail-content"></div><a href="https://cerema.app.box.com/v/dvfplus-opendata/file/2528249865518" target="_blank" rel="noopener noreferrer">Export officiel Cerema ↗</a></dialog>
+<script type="module" src="./app.js?v=20261025"></script>
+</body></html>
