@@ -563,23 +563,41 @@ Use correct Romanian diacritics.`;
     return (await askRelay({ kind: 'details', src: cur.src, text: cur.text, t }, signal)).result;
   }
 
-  async function gt(sl, tl, q, dts, signal, hl) {
+  async function gtDirect(sl, tl, q, dts, signal, hl) {
     const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&dj=1&sl=' + sl + '&tl=' + tl +
-      '&hl=' + (hl || tl) + dts.map((d) => '&dt=' + d).join('');
-    let r;
+      '&hl=' + hl + dts.map((d) => '&dt=' + d).join('');
+    // Give up quickly: a blocked network can hang for a long time, and the server can take over
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 4000);
+    const stop = () => ctl.abort();
+    if (signal) signal.addEventListener('abort', stop);
     try {
-      r = await fetch(url, {
+      const r = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
         body: 'q=' + encodeURIComponent(q),
-        signal,
+        signal: ctl.signal,
       });
+      if (!r.ok) throw new Error('google ' + r.status);
+      return await r.json();
     } catch (e) {
-      if (e && e.name === 'AbortError') throw { code: 'cancelled' };
+      if (signal && signal.aborted) throw { code: 'cancelled' };
       throw { code: inClaude ? 'blocked' : 'google_down' };
+    } finally {
+      clearTimeout(timer);
+      if (signal) signal.removeEventListener('abort', stop);
     }
-    if (!r.ok) throw { code: 'google_down' };
-    return r.json();
+  }
+
+  // Some mobile networks get no answer from Google: with the family code, the server asks Google instead.
+  async function gt(sl, tl, q, dts, signal, hl) {
+    const lang = hl || tl;
+    try {
+      return await gtDirect(sl, tl, q, dts, signal, lang);
+    } catch (e) {
+      if (e.code === 'cancelled' || inClaude || !raw.get(CODE_KEY)) throw e;
+      return (await askRelay({ kind: 'gt', sl, tl, hl: lang, dts, q }, signal)).result;
+    }
   }
   const joinTrans = (j) => ((j && j.sentences) || []).map((s) => s.trans || '').join('');
 
@@ -631,7 +649,7 @@ Use correct Romanian diacritics.`;
   }
   async function withEngine(kind, args, signal) {
     await ready;
-    let firstError = null;
+    let firstError = null, lastError = null;
     for (const name of chainFor(kind)) {
       try {
         const r = await ENGINES[name][kind](...args, signal);
@@ -641,7 +659,12 @@ Use correct Romanian diacritics.`;
       } catch (e) {
         if (signal.aborted || (e && e.code === 'cancelled')) throw e;
         firstError = firstError || e;
+        lastError = e;
       }
+    }
+    // Say what really went wrong with each engine, not just the first one
+    if (lastError !== firstError && lastError.code !== firstError.code) {
+      throw { code: 'all_failed', message: errorCopy(firstError) + ' ' + errorCopy(lastError) };
     }
     throw firstError;
   }
@@ -665,7 +688,8 @@ Use correct Romanian diacritics.`;
     if (OFF_CODES.includes(c)) return 'Claude isn’t available on this account, so translation is off here.';
     if (c === 'google_down') return 'Google Translate didn’t answer. Try again in a moment.';
     if (c === 'bad_code') return 'The family code is wrong. Check it under “Claude” at the bottom of the page.';
-    if (c === 'server_key') return 'Claude isn’t set up on the server yet.';
+    if (c === 'all_failed') return e.message;
+    if (c === 'server_key') return 'Claude’s API key is no longer valid.';
     if (c === 'daily_limit') return 'Today’s Claude limit is reached. Back tomorrow.';
     if (c === 'no_credit') return 'The Claude account is out of credit.';
     if (c === 'blocked') return 'Translation isn’t available in this view. Open the page signed in to Claude.';

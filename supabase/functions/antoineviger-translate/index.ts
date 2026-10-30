@@ -11,6 +11,8 @@ const ALLOWED_ORIGINS = ['https://antoineviger.com', 'https://www.antoineviger.c
 const MODEL = 'claude-opus-5';
 const DAILY_LIMIT = Number(Deno.env.get('ANTOINEVIGER_TRANSLATE_DAILY_LIMIT') ?? 200);
 const MAX_TEXT = 400;
+const MAX_GOOGLE_TEXT = 1500;
+const GOOGLE_DTS = ['t', 'bd', 'md', 'ex', 'ss'];
 const CLAUDE_TIMEOUT_MS = 60_000;
 const CODES = ['fr', 'en', 'ro'];
 const NAMES: Record<string, string> = { fr: 'French', en: 'English', ro: 'Romanian' };
@@ -103,6 +105,32 @@ Deno.serve(async (req) => {
   if (body.kind === 'check') {
     console.log(JSON.stringify({ kind: 'check', ok: true }));
     return reply(req, 200, { ok: true });
+  }
+
+  // Google Translate through the server, for phones whose network Google doesn't answer.
+  // No Claude involved: it works whatever the state of the API key and isn't counted in the daily limit.
+  if (body.kind === 'gt') {
+    const { sl, tl, hl, dts, q } = body;
+    const okDts = Array.isArray(dts) && dts.length > 0 && dts.every((d: unknown) => GOOGLE_DTS.includes(d as string));
+    if (!CODES.includes(sl) || !CODES.includes(tl) || !CODES.includes(hl) || !okDts || !str(q) || q.length > MAX_GOOGLE_TEXT) {
+      return reply(req, 400, { error: 'bad_request' });
+    }
+    const started = Date.now();
+    try {
+      const url = `https://translate.googleapis.com/translate_a/single?client=gtx&dj=1&sl=${sl}&tl=${tl}&hl=${hl}` + dts.map((d: string) => `&dt=${d}`).join('');
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+        body: 'q=' + encodeURIComponent(q),
+        signal: AbortSignal.timeout(8_000),
+      });
+      console.log(JSON.stringify({ kind: 'gt', status: r.status, ms: Date.now() - started }));
+      if (!r.ok) return reply(req, 502, { error: 'google_down' });
+      return reply(req, 200, { result: await r.json() });
+    } catch (e) {
+      console.error('google', e);
+      return reply(req, 502, { error: 'google_down' });
+    }
   }
 
   const api = anthropic();
