@@ -590,7 +590,12 @@ async function load(){
   const keys=Object.keys(jobs); const res=await Promise.allSettled(Object.values(jobs));
   const d={}, failed=[]; res.forEach((r,i)=>{ if(r.status==='fulfilled') d[keys[i]]=r.value; else failed.push(keys[i]); });
   st.data=d;
-  if(!d.book||!d.idx){ $('dot').className='dot'; $('stamp').innerHTML='<span class="err">Deribit injoignable — réessaie</span>'; return; }
+  if(!d.book||!d.idx){
+    // réseau mobile capricieux : deux nouveaux essais automatiques avant d'afficher l'erreur
+    st.fails=(st.fails||0)+1;
+    if(st.fails<=2){ $('stamp').textContent='Connexion lente, nouvel essai…'; setTimeout(load,4000*st.fails); return; }
+    st.fails=0; $('dot').className='dot'; $('stamp').innerHTML='<span class="err">Deribit injoignable : vérifie ta connexion, puis Actualiser</span>'; return; }
+  st.fails=0;
   st.spot=d.idx.index_price; st.opts=parseOptions(d.book); st.trades=d.trades||[];
   buildExpirySelect();
   render();
