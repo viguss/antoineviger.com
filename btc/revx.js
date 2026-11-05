@@ -138,11 +138,13 @@
   function renderProposals() {
     const props = state.proposals || [];
     const p = props[0];
-    const sig = JSON.stringify(props.map((x) => [x.id, x.status, x.last_error])) + (state.mode || "");
+    const sig = JSON.stringify(props.map((x) => [x.id, x.status, x.last_error])) + (state.mode || "") + JSON.stringify(state.agenda || []);
     if (sig === propSig) return; // ne pas effacer un code en cours de saisie
     propSig = sig;
     const box = $("rxProp");
-    if (!p) { box.innerHTML = `<p class="note">Vega proposera un ajustement de tes ordres à 8 h et 20 h. Rien n'est exécuté sans ta validation.</p>`; return; }
+    const ag = (state.agenda || []).map((a) => `${hm(a.at)} (${esc(a.raison)})`);
+    const next = `<p class="note">Prochains passages de Vega : 8 h et 20 h, vendredi 9 h 30 après l'échéance hebdomadaire Deribit${ag.length ? " · en plus : " + ag.join(" · ") : ""}.</p>`;
+    if (!p) { box.innerHTML = next + `<p class="note">Vega proposera un ajustement de tes ordres à 8 h et 20 h. Rien n'est exécuté sans ta validation.</p>`; return; }
     const [lbl, cls] = ST[p.status] || [p.status, "neutral"];
     const pending = p.status === "en_attente" && Date.now() < p.expires_at;
     const t = p.plan && p.plan.totaux;
@@ -165,6 +167,7 @@
           <span class="note" id="rxMsg">Expire ${hm(p.expires_at)} ou si le cours bouge de plus de 1 %.${sim ? " Mode simulation : aucun ordre réel ne sera modifié." : ""}</span>
         </div>` : ""}
       </div>
+      ${next}
       ${props.length > 1 ? `<details class="rx-more"><summary>Propositions précédentes</summary><ul class="rx-hist">${props.slice(1).map((x) =>
         `<li><span class="note">${hm(x.ts)}</span> <span class="chip ${(ST[x.status] || ["", "neutral"])[1]}">${(ST[x.status] || [x.status])[0]}</span> ${esc((x.lecture_marche || "").slice(0, 160))}${(x.lecture_marche || "").length > 160 ? "…" : ""}</li>`).join("")}</ul></details>` : ""}`;
     if (pending) {
