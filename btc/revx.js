@@ -185,7 +185,7 @@
     document.addEventListener("radar:snap", () => { publishSnap(); if (state) render(); });
     document.addEventListener("visibilitychange", () => { if (!document.hidden) load(); });
     timer = setInterval(() => { if (!document.hidden) load(); }, 120000);
-    if (!tok()) setStatus("Non connecté", "");
+    if (!tok()) { setStatus("Non connecté", ""); $("rxSettings").open = true; }
     render(); load();
   }
   init();
