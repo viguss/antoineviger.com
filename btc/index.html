@@ -222,6 +222,44 @@ body.vopen{overflow:hidden}
 /* iOS : figer la page sous le chat, sinon elle défile derrière le clavier */
 body.vfixed{position:fixed;left:0;right:0;width:100%}
 .welcome b{color:var(--text)}
+
+/* Revolut X */
+
+.rx-bell{position:relative}
+.rx-bell .n{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--amber);color:#111;font:700 11px/18px var(--mono);text-align:center}
+.rx-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+.rx-head .status{margin-left:auto}
+.rx-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:24px;margin-top:6px}
+@media (max-width:1280px){.rx-grid{grid-template-columns:minmax(0,1fr)}}
+.rx-lm{font-family:var(--sans);font-size:12px;color:var(--amber)} .rx-lm.muted{color:var(--faint)}
+td.r,th.r{text-align:right}
+.rx-notifs{list-style:none;margin:10px 0 0;padding:0;max-height:360px;overflow:auto}
+.rx-notifs li{display:grid;grid-template-columns:76px minmax(0,1fr);gap:10px;padding:10px 0 10px 10px;border-bottom:1px solid var(--line);border-left:2px solid transparent}
+.rx-notifs li.imp b{color:var(--amber)}
+.rx-notifs li.new{border-left-color:var(--amber);background:rgba(245,184,61,.04)}
+.rx-t{font-size:11px;color:var(--faint);font-family:var(--mono);padding-top:2px}
+.rx-b{color:var(--muted);font-size:13px;margin-top:2px;overflow-wrap:anywhere}
+.rx-h3{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:16px 0 0}
+.rx-set{margin-top:10px}
+.rx-set summary{cursor:pointer;color:var(--muted);font-size:12px}
+.rx-form{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto auto;gap:8px;margin-top:10px;align-items:end}
+.rx-form label{font-size:11px;color:var(--muted);display:grid;gap:4px}
+.rx-form input{font:inherit;font-size:13px;color:var(--text);background:var(--panel2);border:1px solid var(--line2);border-radius:6px;padding:7px 10px;min-width:0}
+@media (max-width:760px){.rx-form{grid-template-columns:minmax(0,1fr)} .rx-form input{font-size:16px}}
+@media (max-width:560px){
+  #revxPanel .stats{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px}
+  #revxPanel .stat .v{font-size:19px}
+  #revxPanel .rx-head .status{margin-left:0;width:100%}
+  .rx-tbl thead{display:none}
+  .rx-tbl tbody tr{display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"s p e" "q q m" "l l d";gap:6px 10px;padding:12px 0;border-bottom:1px solid var(--line)}
+  .rx-tbl td{border:0;padding:0;white-space:normal;text-align:left}
+  .rx-tbl td:nth-child(1){grid-area:s} .rx-tbl td:nth-child(2){grid-area:p;font-weight:700}
+  .rx-tbl td:nth-child(3){grid-area:q} .rx-tbl td:nth-child(4){grid-area:m;text-align:right}
+  .rx-tbl td:nth-child(5){grid-area:e;text-align:right} .rx-tbl td:nth-child(6){grid-area:l} .rx-tbl td:nth-child(7){grid-area:d;text-align:right}
+  .rx-tbl td[colspan]{grid-column:1/-1}
+  .tbl-wrap.rx-tbl{overflow:visible}
+  .rx-notifs li{grid-template-columns:62px minmax(0,1fr)}
+}
 </style>
 </head>
 <body>
@@ -232,6 +270,7 @@ body.vfixed{position:fixed;left:0;right:0;width:100%}
     <div class="controls">
       <label class="note" for="expSel">Échéances</label>
       <select id="expSel"><option value="d90">≤ 90 jours</option></select>
+      <button id="rxBell" class="rx-bell" type="button" hidden>Ordres <span class="n" id="rxBellN" hidden>0</span></button>
       <button id="refresh" type="button">Actualiser</button>
       <span class="status"><span class="dot" id="dot"></span><span id="stamp">Chargement…</span></span>
     </div>
@@ -260,6 +299,31 @@ body.vfixed{position:fixed;left:0;right:0;width:100%}
       <p class="note" style="margin-top:14px">Lecture mécanique des données, pas un conseil en investissement.</p>
     </section>
   </div>
+
+  <!-- Revolut X -->
+  <section class="panel section" id="revxPanel">
+    <div class="rx-head"><h2>Mes ordres Revolut X</h2><span class="chip neutral">lecture seule</span>
+      <span class="status"><span class="dot" id="rxDot"></span><span id="rxStatus">—</span></span></div>
+    <div id="rxConnect" class="desc" hidden>Connecte le dashboard à ton serveur pour voir tes soldes, tes ordres limites et les notifications (exécution, annulation, cours proche d'un ordre). Colle le jeton d'accès dans les réglages ci-dessous.</div>
+    <div id="rxBody" hidden>
+      <div class="stats" id="rxStats"></div>
+      <div class="rx-grid">
+        <div><h3 class="rx-h3">Ordres actifs</h3>
+          <div class="tbl-wrap rx-tbl"><table><thead><tr><th>Sens</th><th class="r">Prix</th><th class="r">Quantité</th><th class="r">Montant</th><th class="r">Écart au cours</th><th>Repère options</th><th>Créé le</th></tr></thead><tbody id="rxOrders"></tbody></table></div>
+          <p class="note">Écart : prix de l'ordre comparé au cours Revolut X. Repère : niveau du dashboard à moins de 1,5 % (put wall, gamma flip, max pain, bas de la fourchette 1σ 7 j). Les ordres se modifient dans l'app Revolut X ; Vega voit ces ordres et peut les commenter.</p></div>
+        <div><h3 class="rx-h3">Notifications</h3><ul class="rx-notifs" id="rxNotifs"></ul></div>
+      </div>
+    </div>
+    <details class="rx-set" id="rxSettings"><summary>Réglages de connexion</summary>
+      <div class="rx-form">
+        <label>Serveur<input id="rxUrl" type="url" autocomplete="off" spellcheck="false"></label>
+        <label>Jeton d'accès<input id="rxTok" type="password" autocomplete="off" spellcheck="false"></label>
+        <button id="rxSave" type="button">Enregistrer</button>
+        <button id="rxForget" type="button">Oublier le jeton</button>
+      </div>
+      <p class="note">Le jeton reste dans ce navigateur. Il donne accès en lecture à tes soldes et ordres, pas au trading.</p>
+    </details>
+  </section>
 
   <!-- Fear & Greed -->
   <section class="panel section">
@@ -821,6 +885,7 @@ safeLoad();
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
-<script type="module" src="vega.js?v=20261024c"></script>
+<script src="revx.js?v=20261105a"></script>
+<script type="module" src="vega.js?v=20261105a"></script>
 </body>
 </html>
