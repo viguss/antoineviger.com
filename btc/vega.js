@@ -3,7 +3,7 @@
 // stockée uniquement en localStorage sur son appareil.
 import Anthropic from "https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@0.126.0/+esm";
 
-const MODEL = "claude-opus-5";
+const MODEL = "claude-opus-5-5";
 const $ = (id) => document.getElementById(id);
 const store = {
   get(k, d = null) { try { const v = localStorage.getItem(k); return v == null ? d : v; } catch { return d; } },

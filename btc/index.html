@@ -224,6 +224,21 @@ body.vfixed{position:fixed;left:0;right:0;width:100%}
 .welcome b{color:var(--text)}
 
 /* Revolut X */
+.rx-propbox{margin-top:18px}
+.rx-prop{border:1px solid var(--line2);border-radius:8px;padding:14px 16px;background:var(--panel2)}
+.rx-prop.pending{border-color:var(--amber)}
+.rx-plan,.rx-res,.rx-hist{list-style:none;margin:10px 0 6px;padding:0}
+.rx-plan li{padding:8px 0;border-bottom:1px solid var(--line)}
+.rx-plan li:last-child{border-bottom:0}
+.rx-res li{font-family:var(--mono);font-size:12px;color:var(--muted);padding:2px 0}
+.rx-hist li{padding:6px 0;border-bottom:1px solid var(--line);font-size:13px;color:var(--muted)}
+.rx-err{color:var(--sell);font-size:13px;margin:6px 0}
+.rx-more{margin-top:8px} .rx-more summary{cursor:pointer;color:var(--muted);font-size:12px} .rx-more p{color:var(--muted);font-size:13px;margin:6px 0}
+.rx-approve{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;margin-top:12px}
+.rx-approve label{font-size:11px;color:var(--muted);display:grid;gap:4px}
+.rx-approve input{font:700 18px var(--mono);letter-spacing:.3em;width:9.5em;color:var(--text);background:var(--bg);border:1px solid var(--line2);border-radius:6px;padding:7px 10px}
+.rx-approve .rx-ok{background:var(--amber);color:#111;border-color:var(--amber);font-weight:600}
+.rx-approve .note{flex-basis:100%}
 
 .rx-bell{position:relative}
 .rx-bell .n{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--amber);color:#111;font:700 11px/18px var(--mono);text-align:center}
@@ -302,11 +317,12 @@ td.r,th.r{text-align:right}
 
   <!-- Revolut X -->
   <section class="panel section" id="revxPanel">
-    <div class="rx-head"><h2>Mes ordres Revolut X</h2><span class="chip neutral">lecture seule</span>
+    <div class="rx-head"><h2>Mes ordres Revolut X</h2><span class="chip neutral" id="rxMode">—</span>
       <span class="status"><span class="dot" id="rxDot"></span><span id="rxStatus">—</span></span></div>
     <div id="rxConnect" class="desc" hidden>Connecte le dashboard à ton serveur pour voir tes soldes, tes ordres limites et les notifications (exécution, annulation, cours proche d'un ordre). Colle le jeton d'accès dans les réglages ci-dessous.</div>
     <div id="rxBody" hidden>
       <div class="stats" id="rxStats"></div>
+      <div id="rxProp" class="rx-propbox"></div>
       <div class="rx-grid">
         <div><h3 class="rx-h3">Ordres actifs</h3>
           <div class="tbl-wrap rx-tbl"><table><thead><tr><th>Sens</th><th class="r">Prix</th><th class="r">Quantité</th><th class="r">Montant</th><th class="r">Écart au cours</th><th>Repère options</th><th>Créé le</th></tr></thead><tbody id="rxOrders"></tbody></table></div>
@@ -885,7 +901,7 @@ safeLoad();
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
-<script src="revx.js?v=20261105b"></script>
-<script type="module" src="vega.js?v=20261105a"></script>
+<script src="revx.js?v=20261105c"></script>
+<script type="module" src="vega.js?v=20261105c"></script>
 </body>
 </html>
